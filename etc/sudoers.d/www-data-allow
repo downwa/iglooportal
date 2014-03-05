@@ -1,0 +1,7 @@
+# allow these to run these commands without passwd
+www-data ALL = NOPASSWD: /usr/sbin/arp
+www-data ALL = NOPASSWD: /sbin/iptables -t nat -A auth -m mac --mac-source ??\:??\:??\:??\:??\:?? -j serv
+www-data ALL = NOPASSWD: /sbin/iptables -t nat -D auth -m mac --mac-source ??\:??\:??\:??\:??\:?? -j serv
+#www-data ALL = NOPASSWD: /sbin/iptables -I internet 1 -t mangle -m mac --mac-source ??\:??\:??\:??\:??\:?? -j RETURN
+#www-data ALL = NOPASSWD: /sbin/iptables -D internet -t mangle -m mac --mac-source ??\:??\:??\:??\:??\:?? -j RETURN
+www-data ALL = NOPASSWD: /usr/bin/rmtrack [0-9]*.[0-9]*.[0-9]*.[0-9]*

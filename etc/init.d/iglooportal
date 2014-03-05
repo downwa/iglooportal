@@ -1,0 +1,126 @@
+#!/bin/sh
+
+USERS="/var/lib/iglooportal/users.txt"
+IPTABLES=/sbin/iptables
+INET=eth0
+CLI=eth1
+RIP=192.168.42.1
+
+runrelay() {
+        /usr/local/bin/tcprelay --listen-port 80 --server 192.168.200.11:8080 --ip-as-port --minimal-log --quiet 2>/var/log/tcprelay80.log 1>&2 &
+        /usr/local/bin/tcprelay --listen-port 443 --server 192.168.200.11:447 --ip-as-port --minimal-log --quiet 2>/var/log/tcprelay443.log 1>&2 &
+        /usr/local/bin/tcprelay --listen-port 447 --server 67.58.20.7:447 --ip-as-port --minimal-log --quiet 2>/var/log/tcprelay447.log 1>&2 &
+}
+
+stsrelay() {
+	echo "Relay status..."
+        netstat -nlp | egrep ":80|:443|:447"
+}
+
+start() {
+	flush
+	mkdir -p /var/lib/iglooportal
+	touch "$USERS"
+
+	# Create table of authorized clients, populate it from flat file, and check them
+	$IPTABLES -t nat    -N auth
+	$IPTABLES -t nat    -A PREROUTING  -i $CLI -j auth  # FORWARD authorized clients only
+
+	###### INTERNET CHAIN ##########
+	# Allow authorised clients in, redirect all others to login webserver
+	# Add known users to the NAT table to stop their dest being rewritten
+	# Ignore MAC address with a * - these users are blocked
+	# This awk script goes through the $USERS flat file line by line
+	awk 'BEGIN { FS="\t"; } { system("$IPTABLES -t nat -A auth -m mac --mac-source "$4" -j serv"); }' "$USERS"
+
+	# Non-authorized clients get DNS only then are redirected to login page
+	$IPTABLES -t nat    -A PREROUTING -p udp --dport    53 -j ACCEPT
+	$IPTABLES -t nat    -A PREROUTING -p tcp --dport    80 -j DNAT --to-destination $RIP
+	$IPTABLES -t nat    -A PREROUTING -p tcp --dport   443 -j DNAT --to-destination $RIP
+	$IPTABLES -t nat    -A PREROUTING -p tcp --dport   447 -j DNAT --to-destination $RIP:443
+	$IPTABLES -t nat    -A PREROUTING -p tcp --dport 24800 -j ACCEPT    # FOR DEBUGGING ONLY
+	$IPTABLES -t nat    -A PREROUTING -j DNAT --to-destination $RIP
+
+	# Enable Internet connection sharing
+	echo "1" > /proc/sys/net/ipv4/ip_forward
+	$IPTABLES -t filter -A FORWARD     -i $INET -o $CLI -m state --state ESTABLISHED,RELATED -j ACCEPT
+	$IPTABLES -t nat    -A POSTROUTING -o $INET -j MASQUERADE
+
+	#For even authorized clients, limit services that can be accessed
+	$IPTABLES -t nat    -N serv 
+	$IPTABLES -t nat    -A serv -p udp --dport    53 -j ACCEPT
+	$IPTABLES -t nat    -A serv -p tcp --dport    80 -j ACCEPT
+	$IPTABLES -t nat    -A serv -p tcp --dport   443 -j ACCEPT
+	$IPTABLES -t nat    -A serv -p tcp --dport   447 -j ACCEPT
+	$IPTABLES -t nat    -A serv -p tcp --dport 24800 -j ACCEPT      # FOR DEBUGGING ONLY
+	$IPTABLES -t nat    -A serv -p icmp -j ACCEPT
+	$IPTABLES -t nat    -A serv -j DNAT --to-destination $RIP
+
+	# Allow specific client:: mac=f0:4d:a2:7f:66:77; $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv
+
+	runrelay
+        sleep 1
+	stsrelay
+}
+
+flush() {
+	# Change policy before -F in case default policy was DROP (to avoid being locked out part way through)
+	$IPTABLES -P INPUT ACCEPT
+	$IPTABLES -P FORWARD ACCEPT
+	$IPTABLES -P OUTPUT ACCEPT
+	# Flush and delete chains
+	$IPTABLES -t filter -F 
+	$IPTABLES -t filter -X
+	$IPTABLES -t nat    -F
+	$IPTABLES -t nat    -X
+	$IPTABLES -t mangle -F
+	$IPTABLES -t mangle -X
+	$IPTABLES -t raw    -F
+	$IPTABLES -t raw    -X
+}
+
+stop() {
+	flush
+	killall tcprelay
+#	iptables-restore </etc/iptables.rules
+}
+
+savefw() {
+	 iptables-save >/etc/iptables.rules
+}
+
+case $1 in
+	start)
+		echo "Starting iglooportal..."
+		start
+	;;
+	status)
+		echo TABLE: filter
+		iptables -t filter -L | sed -e 's/^/    /g'
+		echo TABLE: nat
+		iptables -t nat    -L | sed -e 's/^/    /g'
+		echo TABLE: mangle
+		iptables -t mangle -L | sed -e 's/^/    /g'
+		echo TABLE: raw
+		iptables -t raw    -L | sed -e 's/^/    /g'
+		stsrelay
+	;;
+	stop)
+		echo "Stopping iglooportal..."
+		stop
+	;;
+	restart)
+		echo "Restarting iglooportal..."
+		stop
+		start
+	;;
+	savefw)
+		echo "Saving iglooportal firewall rules..."
+		savefw
+	;;
+	*)
+		echo "Parameters: start, stop, restart, savefw, or status"
+		exit 1
+	;;
+esac
+

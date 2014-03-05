@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for file in *; do stat -c "%10s %n" "$file"; done | sort -nr | more
+
+#ls -l | cut -b 23- | sort -nr | more
+#ls -l | awk '{printf "%10s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n",$5,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30}' | sort -nr | more
