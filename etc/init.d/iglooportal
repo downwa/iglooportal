@@ -26,13 +26,6 @@ start() {
 	$IPTABLES -t nat    -N auth
 	$IPTABLES -t nat    -A PREROUTING  -i $CLI -j auth  # FORWARD authorized clients only
 
-	###### INTERNET CHAIN ##########
-	# Allow authorised clients in, redirect all others to login webserver
-	# Add known users to the NAT table to stop their dest being rewritten
-	# Ignore MAC address with a * - these users are blocked
-	# This awk script goes through the $USERS flat file line by line
-	awk 'BEGIN { FS="\t"; } { system("$IPTABLES -t nat -A auth -m mac --mac-source "$4" -j serv"); }' "$USERS"
-
 	# Non-authorized clients get DNS only then are redirected to login page
 	$IPTABLES -t nat    -A PREROUTING -p udp --dport    53 -j ACCEPT
 	$IPTABLES -t nat    -A PREROUTING -p tcp --dport    80 -j DNAT --to-destination $RIP
@@ -57,6 +50,20 @@ start() {
 	$IPTABLES -t nat    -A serv -j DNAT --to-destination $RIP
 
 	# Allow specific client:: mac=f0:4d:a2:7f:66:77; $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv
+	###### AUTHORIZED CLIENTS (serv chain) ##########
+	# Allow authorised clients in, redirect all others to login webserver
+	# Add known users to the NAT table to stop their dest being rewritten
+	# Ignore MAC address with a * - these users are blocked
+#	IFS=","
+#	while read ts mac ip; do
+#		[ "$mac" = "*" ] && continue
+#		echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv
+#		$IPTABLES -t nat -A auth -m mac --mac-source "$mac" -j serv
+#	done <"$USERS"
+
+# This awk script goes through the $USERS flat file line by line
+	awk -v IPTABLES=$IPTABLES 'BEGIN { FS=","; } { system(IPTABLES" -t nat -A auth -m mac --mac-source "$2" -j serv"); }' "$USERS"
+
 
 	runrelay
         sleep 1
@@ -103,6 +110,8 @@ case $1 in
 		iptables -t mangle -L | sed -e 's/^/    /g'
 		echo TABLE: raw
 		iptables -t raw    -L | sed -e 's/^/    /g'
+		echo "Authorized users:"
+		iptables -t nat -L auth
 		stsrelay
 	;;
 	stop)

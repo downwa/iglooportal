@@ -29,3 +29,6 @@ $IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac" || { echo "MAC address $mac i
 
 echo $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv
 $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv
+
+grep -v ",$mac," /var/lib/iglooportal/users.txt >/var/lib/iglooportal/users.txt.$$
+mv /var/lib/iglooportal/users.txt.$$ /var/lib/iglooportal/users.txt

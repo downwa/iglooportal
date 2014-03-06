@@ -31,3 +31,5 @@ echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv
 $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv
 
 /usr/bin/rmtrack "$ip"
+
+date +"%D %T,$mac,$ip" >> /var/lib/iglooportal/users.txt
