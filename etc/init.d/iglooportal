@@ -57,7 +57,7 @@ start() {
 	# Add known users to the NAT table to stop their dest being rewritten
 	# Ignore MAC address with a * - these users are blocked
 	# This awk script goes through the $USERS flat file line by line
-	awk -v IPTABLES=$IPTABLES 'BEGIN { FS=","; } { system(IPTABLES" -t nat -A auth -m mac --mac-source "$2" -j serv"); }' "$USERS"
+	awk 'BEGIN { FS=","; } { system("/usr/bin/allowip "$3" "$2); }' "$USERS"
 
 	runrelay
         sleep 1

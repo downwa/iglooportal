@@ -2,6 +2,7 @@
 
 IPTABLES=/sbin/iptables
 ARP=/usr/sbin/arp
+USERS=/var/lib/iglooportal/users.txt
 
 ip=$1
 [ "$ip" = "" ] && echo "Missing IP address" 1>&2 && exit 1
@@ -30,5 +31,5 @@ $IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac" || { echo "MAC address $mac i
 echo $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv
 $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv
 
-grep -v ",$mac," /var/lib/iglooportal/users.txt >/var/lib/iglooportal/users.txt.$$
-mv /var/lib/iglooportal/users.txt.$$ /var/lib/iglooportal/users.txt
+grep -v ",$mac," "$USERS" >"$USERS.$$"
+mv "$USERS.$$" "$USERS"
