@@ -13,6 +13,8 @@ runrelay() {
 }
 
 stsrelay() {
+	echo "Authorized users:"
+	iptables -t nat -L auth
 	echo "Relay status..."
         netstat -nlp | egrep ":80|:443|:447"
 }
@@ -54,16 +56,8 @@ start() {
 	# Allow authorised clients in, redirect all others to login webserver
 	# Add known users to the NAT table to stop their dest being rewritten
 	# Ignore MAC address with a * - these users are blocked
-#	IFS=","
-#	while read ts mac ip; do
-#		[ "$mac" = "*" ] && continue
-#		echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv
-#		$IPTABLES -t nat -A auth -m mac --mac-source "$mac" -j serv
-#	done <"$USERS"
-
-# This awk script goes through the $USERS flat file line by line
+	# This awk script goes through the $USERS flat file line by line
 	awk -v IPTABLES=$IPTABLES 'BEGIN { FS=","; } { system(IPTABLES" -t nat -A auth -m mac --mac-source "$2" -j serv"); }' "$USERS"
-
 
 	runrelay
         sleep 1
@@ -110,8 +104,6 @@ case $1 in
 		iptables -t mangle -L | sed -e 's/^/    /g'
 		echo TABLE: raw
 		iptables -t raw    -L | sed -e 's/^/    /g'
-		echo "Authorized users:"
-		iptables -t nat -L auth
 		stsrelay
 	;;
 	stop)
