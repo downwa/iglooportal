@@ -3,10 +3,12 @@
 IPTABLES=/sbin/iptables
 ARP=/usr/sbin/arp
 USERS=/var/lib/iglooportal/users.txt
+QUOTA=104857600 # 100 Mb
 
 ip=$1
 [ "$ip" = "" ] && echo "Missing IP address" 1>&2 && exit 1
 mac=$2
+user=$3
 
 # Extract MAC address from arp table
 arpmac() {
@@ -27,12 +29,12 @@ mac() {
 
 [ "$mac" = "" ] && mac "$ip"
 [ "$mac" = "" ] && echo "IP address $ip does not translate to a MAC address." 1>&2 && exit 2
-$IPTABLES -t nat -L auth | grep -qi "MAC.*$mac" && echo "MAC address $mac is already authorized." && exit 0
+$IPTABLES -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user \*\/$" && echo "MAC address $mac is already authorized." && exit 0
 
-echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv
-$IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv
+echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user"
+$IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
 
 /usr/bin/rmtrack "$ip"
 
 # Only add if not already in USERS file
-grep -q ",$mac," "$USERS" || date +"%D %T,$mac,$ip" >> "$USERS"
+grep -q ",$mac,$user" "$USERS" || date +"%D %T,$mac,$ip,$user" >> "$USERS"
