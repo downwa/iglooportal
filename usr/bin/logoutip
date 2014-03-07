@@ -26,10 +26,15 @@ mac() {
 
 mac "$ip"
 [ "$mac" = "" ] && echo "IP address $ip does not translate to a MAC address." 1>&2 && exit 2
-$IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac" || { echo "MAC address $mac is not already authorized."; exit 3; }
 
-echo $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv
-$IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv
+/usr/bin/rmtrack "$ip"
+
+while [ true ]; do
+	$IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac" || { echo "MAC address $mac is not authorized."; break; }
+
+	echo $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv
+	$IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv
+done
 
 grep -v ",$mac," "$USERS" >"$USERS.$$"
 mv "$USERS.$$" "$USERS"

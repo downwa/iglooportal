@@ -14,9 +14,9 @@ runrelay() {
 
 stsrelay() {
 	echo "Authorized users:"
-	iptables -t nat -L auth
+	$IPTABLES -t nat -L auth
 	echo "Relay status..."
-        netstat -nlp | egrep ":80|:443|:447"
+        /bin/netstat -nlp | egrep ":80|:443|:447"
 }
 
 start() {
@@ -97,13 +97,13 @@ case $1 in
 	;;
 	status)
 		echo TABLE: filter
-		iptables -t filter -L | sed -e 's/^/    /g'
+		$IPTABLES -t filter -L | sed -e 's/^/    /g'
 		echo TABLE: nat
-		iptables -t nat    -L | sed -e 's/^/    /g'
+		$IPTABLES -t nat    -L | sed -e 's/^/    /g'
 		echo TABLE: mangle
-		iptables -t mangle -L | sed -e 's/^/    /g'
+		$IPTABLES -t mangle -L | sed -e 's/^/    /g'
 		echo TABLE: raw
-		iptables -t raw    -L | sed -e 's/^/    /g'
+		$IPTABLES -t raw    -L | sed -e 's/^/    /g'
 		stsrelay
 	;;
 	stop)
