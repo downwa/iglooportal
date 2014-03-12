@@ -1,0 +1,9 @@
+git clone https://github.com/downwa/iglooportal
+git clone https://github.com/downwa/tcprelay
+cd tcprelay/
+./configure && sudo make install
+cd ../iglooportal/
+sudo make install
+sudo chown root etc/sudoers.d/
+sudo chown root ./etc/sudoers.d/www-data-allow
+sudo /etc/init.d/isc-dhcp-server start

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ad_list_url="http://pgl.yoyo.org/adservers/serverlist.php?hostformat=dnsmasq&showintro=0&mimetype=plaintext"
-pixelserv_ip="192.168.200.23"
+pixelserv_ip="192.168.42.2" # Non-existant at the moment
 ad_file="/etc/dnsmasq.d/dnsmasq.adlist.conf"
 temp_ad_file="/etc/dnsmasq.d/dnsmasq.adlist.conf.tmp"
 

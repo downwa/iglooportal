@@ -19,7 +19,7 @@ stop:
 # then git push -f origin master
 
 gitconfig:
-	git config --global push.default simple
+	git config --global push.default current # simple
 	git config --global credential.helper 'cache --timeout=3600'
 
 checkout:
