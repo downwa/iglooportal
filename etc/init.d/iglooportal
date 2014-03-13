@@ -11,6 +11,7 @@ runrelay() {
 	/usr/local/bin/tcprelay --listen-port 443  --server innproxy:447      --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay443.log  --nodisplay-log &
 	/usr/local/bin/tcprelay --listen-port 447  --server 67.58.20.7:447    --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay447.log  --nodisplay-log &
 	/usr/local/bin/tcprelay --listen-port 5900 --server 192.168.42.9:5900 --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay5900.log --nodisplay-log &
+	/usr/local/bin/tcprelay --listen-port 9054 --server 192.168.42.2:9054 --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay9054.log --nodisplay-log &
 }
 
 stsrelay() {
@@ -34,7 +35,8 @@ start() {
 	$IPTABLES -t nat    -A PREROUTING -p tcp --dport    80 -j DNAT --to-destination $RIP
 	$IPTABLES -t nat    -A PREROUTING -p tcp --dport   443 -j DNAT --to-destination $RIP
 	$IPTABLES -t nat    -A PREROUTING -p tcp --dport   447 -j DNAT --to-destination $RIP:443
-	$IPTABLES -t nat    -A PREROUTING -p tcp --dport 24800 -j ACCEPT    # FOR DEBUGGING ONLY
+	$IPTABLES -t nat    -A PREROUTING -p tcp --dport  9054 -j ACCEPT # Micros Terminal
+	$IPTABLES -t nat    -A PREROUTING -p tcp --dport 24800 -j ACCEPT # Synergy Mouse/Keyboard: FOR DEBUGGING ONLY
 	$IPTABLES -t nat    -A PREROUTING -j DNAT --to-destination $RIP
 
 	# Enable Internet connection sharing
@@ -48,7 +50,8 @@ start() {
 	$IPTABLES -t nat    -A serv -p tcp --dport    80 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport   443 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport   447 -j ACCEPT
-	$IPTABLES -t nat    -A serv -p tcp --dport 24800 -j ACCEPT      # FOR DEBUGGING ONLY
+	$IPTABLES -t nat    -A serv -p tcp --dport  9054 -j ACCEPT # Micros Terminal
+	$IPTABLES -t nat    -A serv -p tcp --dport 24800 -j ACCEPT # Synergy Mouse/Keyboard: FOR DEBUGGING ONLY
 	$IPTABLES -t nat    -A serv -p icmp -j ACCEPT
 	$IPTABLES -t nat    -A serv -j DNAT --to-destination $RIP
 
