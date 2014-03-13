@@ -18,7 +18,7 @@ stsrelay() {
 	echo "Authorized users:"
 	$IPTABLES -t nat -L auth
 	echo "Relay status..."
-        /bin/netstat -nlp | egrep ":80|:443|:447"
+        /bin/netstat -nlp | grep tcprelay
 }
 
 start() {
