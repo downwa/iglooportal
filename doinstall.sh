@@ -1,4 +1,5 @@
 #!/bin/sh
+# Install script
 
 if [ "$1" = "--install" ]; then
   # git clone https://github.com/downwa/iglooportal # NOTE: Presumably already done if you are here
