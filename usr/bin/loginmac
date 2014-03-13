@@ -1,0 +1,27 @@
+#!/bin/sh
+
+IPTABLES=/sbin/iptables
+ARP=/usr/sbin/arp
+USERS=/var/lib/iglooportal/users.txt
+QUOTA=104857600 # 100 Mb
+
+mac=$1
+[ "$mac" = "" ] && echo "Missing MAC address" 1>&2 && exit 1
+user=$2
+
+# Extract IP address from arp table (if any)
+arpip() {
+	mac=$1
+	$ARP -an | grep -v "<incomplete>" | grep ".*at $mac " | sed -e 's/.*(\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)).*at.*/\1/g' | head -n 1
+}
+
+$IPTABLES -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user \*\/$" && echo "MAC address $mac is already authorized." && exit 0
+
+echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user"
+$IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+
+ip=$(arpip "$mac") # May have no IP address if not logged in.  That's okay, we can still authorize based on MAC
+[ "$ip" != "" ] && /usr/bin/rmtrack "$ip"
+
+# Only add if not already in USERS file
+grep -q ",$mac,$user" "$USERS" || date +"%D %T,$mac,$ip,$user" >> "$USERS"
