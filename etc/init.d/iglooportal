@@ -61,7 +61,7 @@ start() {
 	# Add known users to the NAT table to stop their dest being rewritten
 	# Ignore MAC address with a * - these users are blocked
 	# This awk script goes through the $USERS flat file line by line
-	awk 'BEGIN { FS=","; } { system("/usr/bin/loginip "$3" "$2" "$4); }' "$USERS"
+	awk 'BEGIN { FS=","; } { system("/usr/bin/loginmac "$2" "$4); }' "$USERS"
 
 	runrelay
         sleep 1
