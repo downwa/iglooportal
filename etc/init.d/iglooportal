@@ -1,4 +1,44 @@
-#!/bin/sh
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          iglooportal
+# Required-Start:    $all
+# Required-Stop:     $all
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Firewall configuration for hotel captive portal
+# Description:       This init script sets the necessary iptables rules for a hotel captive portal
+### END INIT INFO
+
+# Author: Warren Downs <wdowns@choggiung.com>
+#
+
+# Do NOT "set -e"
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="Hotel Captive Portal"
+NAME=tcprelay
+DAEMON=/usr/local/bin/$NAME
+PORT1=80
+PORT2=443
+PORT3=447
+PORT4=5900
+PORT5=9054
+TO1=innproxy     # Authentication server
+TO2=67.58.20.7   # Redirect for SSL
+FM1=192.168.42.9 # Test client
+FM2=192.168.42.2 # Micros
+DAEMON_ARGS1="--listen-port ${PORT1} --server $TO1:80${PORT1} --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT1}.log --nodisplay-log"
+DAEMON_ARGS2="--listen-port ${PORT2} --server $TO1:${PORT2}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT2}.log --nodisplay-log"
+DAEMON_ARGS3="--listen-port ${PORT3} --server $TO2:${PORT3}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT3}.log --nodisplay-log"
+DAEMON_ARGS4="--listen-port ${PORT4} --server $FM1:${PORT4}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT4}.log --nodisplay-log"
+DAEMON_ARGS5="--listen-port ${PORT5} --server $FM2:${PORT5}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT5}.log --nodisplay-log"
+PIDFILE1=/var/run/$NAME$PORT1.pid
+PIDFILE2=/var/run/$NAME$PORT2.pid
+PIDFILE3=/var/run/$NAME$PORT3.pid
+PIDFILE4=/var/run/$NAME$PORT4.pid
+PIDFILE5=/var/run/$NAME$PORT5.pid
+SCRIPTNAME=/etc/init.d/$NAME
 
 USERS="/var/lib/iglooportal/users.txt"
 IPTABLES=/sbin/iptables
@@ -6,19 +46,87 @@ INET=eth0
 CLI=eth1
 RIP=192.168.42.1
 
-runrelay() {
-	/usr/local/bin/tcprelay --listen-port 80   --server innproxy:8080     --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay80.log   --nodisplay-log &
-	/usr/local/bin/tcprelay --listen-port 443  --server innproxy:447      --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay443.log  --nodisplay-log &
-	/usr/local/bin/tcprelay --listen-port 447  --server 67.58.20.7:447    --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay447.log  --nodisplay-log &
-	/usr/local/bin/tcprelay --listen-port 5900 --server 192.168.42.9:5900 --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay5900.log --nodisplay-log &
-	/usr/local/bin/tcprelay --listen-port 9054 --server 192.168.42.2:9054 --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay9054.log --nodisplay-log &
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+	start
+	# Return
+	#   0 if daemon has been started
+	#   1 if daemon was already running
+	#   2 if daemon could not be started
+	start-stop-daemon --start --quiet --exec $DAEMON --test > /dev/null || return 1
+	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE1 --exec $DAEMON -- $DAEMON_ARGS1   || return 2
+	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE2 --exec $DAEMON -- $DAEMON_ARGS2   || return 2
+	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE3 --exec $DAEMON -- $DAEMON_ARGS3   || return 2
+	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE4 --exec $DAEMON -- $DAEMON_ARGS4   || return 2
+	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE5 --exec $DAEMON -- $DAEMON_ARGS5   || return 2
+	# Add code here, if necessary, that waits for the process to be ready
+	# to handle requests from services started subsequently which depend
+	# on this one.  As a last resort, sleep for some time.
+	stsrelay
 }
 
-stsrelay() {
-	echo "Authorized users:"
-	$IPTABLES -t nat -L auth
-	echo "Relay status..."
-        /bin/netstat -nlp | grep tcprelay
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+	stop
+	# Return
+	#   0 if daemon has been stopped
+	#   1 if daemon was already stopped
+	#   2 if daemon could not be stopped
+	#   other if a failure occurred
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE1 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE2 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE3 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE4 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE5 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	# Wait for children to finish too if this is a daemon that forks
+	# and if the daemon is only ever run from this initscript.
+	# If the above conditions are not satisfied then add some other code
+	# that waits for the process to drop all resources that could be
+	# needed by services started subsequently.  A last resort is to
+	# sleep for some time.
+	start-stop-daemon --stop --quiet --oknodo --retry=0/30/KILL/5 --exec $DAEMON
+	[ "$?" = 2 ] && return 2
+	# Many daemons don't delete their pidfiles when they exit.
+	rm -f $PIDFILE1 $PIDFILE2 $PIDFILE3 $PIDFILE4 $PIDFILE5
+	return "$RETVAL"
+}
+
+#
+# Function that sends a SIGHUP to the daemon/service
+#
+do_reload() {
+	#
+	# If the daemon can reload its configuration without
+	# restarting (for example, when it is sent a SIGHUP),
+	# then implement that here.
+	#
+	#start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE --name $NAME
+	return 0
 }
 
 start() {
@@ -63,9 +171,14 @@ start() {
 	# This awk script goes through the $USERS flat file line by line
 	awk 'BEGIN { FS=","; } { system("/usr/bin/loginmac "$2" "$4); }' "$USERS"
 
-	runrelay
-        sleep 1
-	stsrelay
+	#runrelay
+}
+
+stsrelay() {
+	echo "Authorized users:"
+	$IPTABLES -t nat -L auth
+	echo "Relay status..."
+        /bin/netstat -nlp | grep tcprelay
 }
 
 flush() {
@@ -90,42 +203,63 @@ stop() {
 #	iptables-restore </etc/iptables.rules
 }
 
-savefw() {
-	 iptables-save >/etc/iptables.rules
-}
 
-case $1 in
-	start)
-		echo "Starting iglooportal..."
-		start
+case "$1" in
+  start)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+	do_start
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
 	;;
-	status)
-		echo TABLE: filter
-		$IPTABLES -t filter -L | sed -e 's/^/    /g'
-		echo TABLE: nat
-		$IPTABLES -t nat    -L | sed -e 's/^/    /g'
-		echo TABLE: mangle
-		$IPTABLES -t mangle -L | sed -e 's/^/    /g'
-		echo TABLE: raw
-		$IPTABLES -t raw    -L | sed -e 's/^/    /g'
-		stsrelay
+  stop)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+	do_stop
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
 	;;
-	stop)
-		echo "Stopping iglooportal..."
-		stop
+  status)
+	status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
 	;;
-	restart)
-		echo "Restarting iglooportal..."
-		stop
-		start
+  #reload|force-reload)
+	#
+	# If do_reload() is not implemented then leave this commented out
+	# and leave 'force-reload' as an alias for 'restart'.
+	#
+	#log_daemon_msg "Reloading $DESC" "$NAME"
+	#do_reload
+	#log_end_msg $?
+	#;;
+  restart|force-reload)
+	#
+	# If the "reload" option is implemented then remove the
+	# 'force-reload' alias
+	#
+	log_daemon_msg "Restarting $DESC" "$NAME"
+	do_stop
+	case "$?" in
+	  0|1)
+		do_start
+		case "$?" in
+			0) log_end_msg 0 ;;
+			1) log_end_msg 1 ;; # Old process is still running
+			*) log_end_msg 1 ;; # Failed to start
+		esac
+		;;
+	  *)
+		# Failed to stop
+		log_end_msg 1
+		;;
+	esac
 	;;
-	savefw)
-		echo "Saving iglooportal firewall rules..."
-		savefw
-	;;
-	*)
-		echo "Parameters: start, stop, restart, savefw, or status"
-		exit 1
+  *)
+	#echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
+	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+	exit 3
 	;;
 esac
 
+:

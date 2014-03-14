@@ -24,4 +24,4 @@ ip=$(arpip "$mac") # May have no IP address if not logged in.  That's okay, we c
 [ "$ip" != "" ] && /usr/bin/rmtrack "$ip"
 
 # Only add if not already in USERS file
-grep -q ",$mac,$user" "$USERS" || date +"%D %T,$mac,$ip,$user" >> "$USERS"
+grep -q ",$mac,.*,$user" "$USERS" || date +"%D %T,$mac,$ip,$user" >> "$USERS"

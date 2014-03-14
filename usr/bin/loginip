@@ -37,4 +37,4 @@ $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "
 /usr/bin/rmtrack "$ip"
 
 # Only add if not already in USERS file
-grep -q ",$mac,$user" "$USERS" || date +"%D %T,$mac,$ip,$user" >> "$USERS"
+grep -q ",$mac,.*,$user" "$USERS" || date +"%D %T,$mac,$ip,$user" >> "$USERS"
