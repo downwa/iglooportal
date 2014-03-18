@@ -30,6 +30,7 @@ main() {
 	[ "$mac" = "" ] && echo "IP address $ip does not translate to a MAC address." 1>&2 && exit 2
 
 	already=$(ps waxf | grep "ssh www-data@$AUTHSRVR relay-auth $ip $mac" | grep -v grep | wc -l)
+	echo "relay-auth: ip=$ip,mac=$mac,already=$already"
 	if [ "$already" = "0" ]; then
 		result=$(ssh www-data@$AUTHSRVR relay-auth "$ip" "$mac" | grep -vi "awaiting")
 		auth=$(echo "$result" | awk '{print $1}')
@@ -42,4 +43,4 @@ main() {
 	fi
 }
 
-main "$ip"
+main "$ip" >/var/log/relay-auth-$ip.log 2>&1
