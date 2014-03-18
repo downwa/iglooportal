@@ -1,4 +1,5 @@
-#! /bin/sh
+#!/bin/bash
+
 ### BEGIN INIT INFO
 # Provides:          iglooportal
 # Required-Start:    $all
@@ -24,12 +25,13 @@ PORT2=443
 PORT3=447
 PORT4=5900
 PORT5=9054
+NET=192.168.42
 TO1=innproxy     # Authentication server
 TO2=67.58.20.7   # Redirect for SSL
-FM1=192.168.42.9 # Test client
-FM2=192.168.42.2 # Micros
+FM1=$NET.9 # Test client
+FM2=$NET.2 # Micros
 DAEMON_ARGS1="--listen-port ${PORT1} --server $TO1:80${PORT1} --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT1}.log --nodisplay-log"
-DAEMON_ARGS2="--listen-port ${PORT2} --server $TO1:${PORT2}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT2}.log --nodisplay-log"
+DAEMON_ARGS2="--listen-port ${PORT2} --server $TO1:${PORT3}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT2}.log --nodisplay-log"
 DAEMON_ARGS3="--listen-port ${PORT3} --server $TO2:${PORT3}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT3}.log --nodisplay-log"
 DAEMON_ARGS4="--listen-port ${PORT4} --server $FM1:${PORT4}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT4}.log --nodisplay-log"
 DAEMON_ARGS5="--listen-port ${PORT5} --server $FM2:${PORT5}   --ip-as-port --minimal-log --quiet --log-file /var/log/tcprelay${PORT5}.log --nodisplay-log"
@@ -44,7 +46,7 @@ USERS="/var/lib/iglooportal/users.txt"
 IPTABLES=/sbin/iptables
 INET=eth0
 CLI=eth1
-RIP=192.168.42.1
+RIP=$NET.1
 
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0
@@ -171,7 +173,20 @@ start() {
 	# This awk script goes through the $USERS flat file line by line
 	awk 'BEGIN { FS=","; } { system("/usr/bin/loginmac "$2" "$4); }' "$USERS"
 
-	#runrelay
+	accounting
+}
+
+accounting() {
+	echo "Adding accounting rules for all IP addresses in subnet..."
+	$IPTABLES -N acctI
+	$IPTABLES -N acctO
+	$IPTABLES -I FORWARD -i eth0 -j acctI
+	$IPTABLES -I FORWARD -o eth0 -j acctO
+	for((x=1;x<=255;x++)); do
+		$IPTABLES -A acctI --dst $NET.$x
+		$IPTABLES -A acctO --src $NET.$x
+	done
+	#$IPTABLES -n -v -x -L -Z
 }
 
 stsrelay() {
