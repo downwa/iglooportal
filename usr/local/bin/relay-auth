@@ -1,11 +1,10 @@
 #!/bin/bash
 
-AUTHSRVR=192.168.200.11
-
-ARP=/usr/sbin/arp
-
 ip=$1
 [ "$ip" = "" ] && echo "Missing IP address" 1>&2 && exit 1
+
+ARP=/usr/sbin/arp
+source /etc/iglooportal
 
 # Extract MAC address from arp table
 arpmac() {

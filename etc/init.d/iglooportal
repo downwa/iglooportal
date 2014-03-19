@@ -70,6 +70,7 @@ RIP=$NET.1
 do_start()
 {
 	start
+	/etc/init.d/timeoutd start
 	# Return
 	#   0 if daemon has been started
 	#   1 if daemon was already running
@@ -92,6 +93,7 @@ do_start()
 do_stop()
 {
 	stop
+	/etc/init.d/timeoutd stop
 	# Return
 	#   0 if daemon has been stopped
 	#   1 if daemon was already stopped
@@ -219,7 +221,6 @@ stop() {
 	killall tcprelay
 #	iptables-restore </etc/iptables.rules
 }
-
 
 case "$1" in
   start)

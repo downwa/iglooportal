@@ -1,0 +1,55 @@
+#!/bin/bash
+
+timeoutd() {
+	date +"%D %T: timeoutd started"
+	echo $BASHPID >/var/run/timeoutd.pid
+	while [ true ]; do
+		# Check for users who are disconnected, to timeout their logins
+		iptables -t nat -L auth | grep "MAC " | awk '{print $7" "$9}' | sed -e 's/USER://g' | while read mac user; do
+			ip=$(arp -na | grep -i " at $mac" | cut -d '(' -f 2 | cut -d ')' -f 1)
+			if [ "$ip" = "" -a "${user:0:6}" != "micros" ]; then
+				/usr/bin/logoutmac "$mac" "$user"
+			fi
+		done
+		sleep 60
+	done
+}
+
+stop() {
+	pid=$(cat /var/run/timeoutd.pid 2>/dev/null)
+	if [ "$pid" != "" ]; then
+		kill $pid 2>/dev/null
+		sleep 1
+		kill -9 $pid 2>/dev/null
+	fi
+}
+
+status() {
+	echo -n "timeoutd: "
+	pid=$(cat /var/run/timeoutd.pid 2>/dev/null)
+	apid=$(ps waxf | grep ^$pid)
+	if [ "$apid" != "" ]; then
+		echo "Running pid=$pid."
+	else
+		echo "Stopped."
+	fi
+}
+
+case $1 in
+	restart|start)
+		stop # Any existing copy
+		timeoutd </dev/null >/var/log/timeoutd.log 2>&1 &
+		sleep 1
+		status
+	;;
+	stop)
+		stop
+		status
+	;;
+	status)
+		status
+	;;
+	*)
+		echo "Requires start|stop|status"
+	;;
+esac

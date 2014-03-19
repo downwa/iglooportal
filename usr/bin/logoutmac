@@ -1,8 +1,11 @@
 #!/bin/sh
 
 IPTABLES=/sbin/iptables
+ARP=/usr/sbin/arp
 USERS=/var/lib/iglooportal/users.txt
 QUOTA=104857600 # 100 Mb
+
+source /etc/iglooportal
 
 mac=$1
 [ "$mac" = "" ] && echo "Missing MAC address" 1>&2 && exit 1
@@ -15,6 +18,7 @@ arpip() {
 }
 
 ip=$(arpip "$mac") # May have no IP address if not logged in.  That's okay, we can still de-authorize based on MAC
+date +"%D %T: logoutmac"
 [ "$ip" != "" ] && /usr/bin/rmtrack "$ip"
 
 while [ true ]; do
@@ -26,3 +30,5 @@ done
 
 grep -v ",$mac," "$USERS" >"$USERS.$$"
 mv "$USERS.$$" "$USERS"
+
+ssh www-data@$AUTHSRVR logoutwebuser "$user"
