@@ -39,5 +39,7 @@ while [ true ]; do
 	$IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
 done
 
-grep -v ",$mac," "$USERS" >"$USERS.$$"
+grep -vi ",$mac," "$USERS" >"$USERS.$$"
 mv "$USERS.$$" "$USERS"
+
+ssh www-data@$AUTHSRVR logoutwebuser "$user"
