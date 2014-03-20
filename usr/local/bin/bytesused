@@ -1,10 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 # PURPOSE: Produce a table of bytes used, user since the checkout time in the last 24 hours
 
-CHECKOUT=11  # Checkout time for this hotel (e.g. 11=11 A.M. or 1100 hours)
 FREQ=1       # Frequency this script should be run (can be run by timeoutd)
 
 USAGE=/var/lib/iglooportal/usage.csv
+
+source /etc/iglooportal # AUTHSRVR,CHECKOUT
 
 # Read and clear client usage counters
 clientUsage() {
@@ -47,3 +48,5 @@ main() {
 }
 
 main
+name=$(awk '{print $2}' /root/.ssh/id_dsa.pub | shasum | awk '{print $1}') # Unique name from public key for this firewall
+scp "$USAGE" www-data@$AUTHSRVR:/var/lib/innproxy/users/$name-usage.csv

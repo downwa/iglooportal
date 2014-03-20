@@ -1,0 +1,8 @@
+# IglooPortal defaults
+
+# Authentication server IP address
+AUTHSRVR=192.168.200.11
+
+# Checkout time for this hotel (e.g. 11=11 A.M. or 1100 hours)
+CHECKOUT=11
+
