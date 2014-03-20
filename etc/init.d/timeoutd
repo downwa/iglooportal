@@ -1,8 +1,11 @@
 #!/bin/bash
 
+FREQ=1 # How many minutes between runs
+
 timeoutd() {
 	date +"%D %T: timeoutd started"
 	echo $BASHPID >/var/run/timeoutd.pid
+	SLEEPTIME=$(($FREQ*60))
 	while [ true ]; do
 		# Check for users who are disconnected, to timeout their logins
 		iptables -t nat -L auth | grep "MAC " | awk '{print $7" "$9}' | sed -e 's/USER://g' | while read mac user; do
@@ -11,7 +14,7 @@ timeoutd() {
 				/usr/bin/logoutmac "$mac" "$user"
 			fi
 		done
-		sleep 60
+		sleep $SLEEPTIME
 	done
 }
 

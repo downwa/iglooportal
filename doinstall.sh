@@ -19,7 +19,7 @@ if [ "$1" = "--install" ]; then
 	sudo chown root ./etc/sudoers.d/www-data-allow
 fi
 
-sudo cp -av etc/ usr/ home/ /
+sudo cp -av etc/ usr/ home/ var/ /
 sudo /etc/init.d/iglooportal restart
 sudo ifup -a
 sudo /etc/init.d/isc-dhcp-server start

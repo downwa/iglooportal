@@ -20,16 +20,39 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="Hotel Captive Portal"
 NAME=tcprelay
 DAEMON=/usr/local/bin/$NAME
+
+# Ports for HTTP, HTTPS Client -> Internet
 PORT1=80
 PORT2=443
 PORT3=447
+
+# Ports for VNC, Micros LAN -> Client
 PORT4=5900
 PORT5=9054
-NET=192.168.42
+
+# Internet interface, Client interface
+INET=eth0
+CLI=eth1
+
+# Router IP and Network
+RIP=$(ifconfig "$CLI" | grep "inet addr:" | awk '{print $2}' | cut -d ':' -f 2)
+NET=${RIP%.*}
+
 TO1=innproxy     # Authentication server
-TO2=67.58.20.7   # Redirect for SSL
+
+# Redirect for SSL.  This is to share a single SSL certificate between hotel public site, and hotel WiFi portal.
+# This is the public address of the hotel website, to which we forward clients who request port 447 (the
+# hotel public SSL port).  This forwarding is ignored by the firewall if the client is not authenticated, and
+# they will instead be directed by iptables rule to port 443, which is forwarded to authentication server.
+# However, once authenticated, the client will be allowed to access port 447.  But name resolution is still
+# pointing them to the router IP, which is why we have to do this forwarding in case they should really be
+# attempting to access our hotel public site while using our hotel WiFi.
+# NOTE: It might be a nice touch to have the firewall allow access to our hotel public site even when not
+# authenticated.  However, it would open up our network to anyone for attempted breakin or Denial of Service.
+TO2=reserve.bristolinn.com
+
 FM1=$NET.9 # Test client
-FM2=$NET.2 # Micros
+FM2=$NET.2 # Micros server on Corporate LAN contacts micros client on Diner LAN (in reverse order)
 
 DAEMON_ARGS_COMMON="--ip-as-port --minimal-log --quiet --nodisplay-log --connexe /usr/local/bin/relay-auth"
 DAEMON_ARGS1="--listen-port ${PORT1} --server $TO1:80${PORT1} --log-file /var/log/tcprelay${PORT1}.log $DAEMON_ARGS_COMMON"
@@ -46,9 +69,6 @@ SCRIPTNAME=/etc/init.d/$NAME
 
 USERS="/var/lib/iglooportal/users.txt"
 IPTABLES=/sbin/iptables
-INET=eth0
-CLI=eth1
-RIP=$NET.1
 
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0
@@ -67,14 +87,17 @@ RIP=$NET.1
 #
 # Function that starts the daemon/service
 #
-do_start()
-{
-	start
+do_start() {
+	startfw # Apply firewall rules
+
+ 	# Start a daemon which times out users who are off the net, or whose time allotment or bandwidth has been exceeded.
 	/etc/init.d/timeoutd start
+
+	# Start relay daemons (forward internal HTTP/HTTPS requests to authentication server, and forward certain external services to Wireless LAN)
 	# Return
-	#   0 if daemon has been started
-	#   1 if daemon was already running
-	#   2 if daemon could not be started
+	#   0 if daemons have been started
+	#   1 if daemons were already running
+	#   2 if any daemon could not be started
 	start-stop-daemon --start --quiet --exec $DAEMON --test > /dev/null || return 1
 	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE1 --exec $DAEMON -- $DAEMON_ARGS1 >/var/log/tr1.log || return 2
 	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE2 --exec $DAEMON -- $DAEMON_ARGS2 >/var/log/tr2.log || return 2
@@ -84,20 +107,27 @@ do_start()
 	# Add code here, if necessary, that waits for the process to be ready
 	# to handle requests from services started subsequently which depend
 	# on this one.  As a last resort, sleep for some time.
+
+	# Display status of relays
 	stsrelay
+
+	return 0
 }
 
 #
 # Function that stops the daemon/service
 #
-do_stop()
-{
-	stop
+do_stop() {
+	stopfw # Clear firewall rules and stop relays
+
+	# Stop dameon for timing out users
 	/etc/init.d/timeoutd stop
+
+	# Stop relay daemons
 	# Return
-	#   0 if daemon has been stopped
+	#   0 if all daemons have been stopped
 	#   1 if daemon was already stopped
-	#   2 if daemon could not be stopped
+	#   2 if any daemon could not be stopped
 	#   other if a failure occurred
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE1 --name $NAME
 	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
@@ -122,21 +152,9 @@ do_stop()
 	return "$RETVAL"
 }
 
-#
-# Function that sends a SIGHUP to the daemon/service
-#
-do_reload() {
-	#
-	# If the daemon can reload its configuration without
-	# restarting (for example, when it is sent a SIGHUP),
-	# then implement that here.
-	#
-	#start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE --name $NAME
-	return 0
-}
+startfw() {
+	flushfw # Clear firewall rules
 
-start() {
-	flush
 	mkdir -p /var/lib/iglooportal
 	touch "$USERS"
 
@@ -177,6 +195,7 @@ start() {
 	# This awk script goes through the $USERS flat file line by line
 	awk 'BEGIN { FS=","; } { system("/usr/bin/loginmac "$2" "$4); }' "$USERS"
 
+	# Firewall rules to measure bandwidth used by clients
 	accounting
 }
 
@@ -200,7 +219,7 @@ stsrelay() {
         /bin/netstat -nlp | grep tcprelay
 }
 
-flush() {
+flushfw() {
 	# Change policy before -F in case default policy was DROP (to avoid being locked out part way through)
 	$IPTABLES -P INPUT ACCEPT
 	$IPTABLES -P FORWARD ACCEPT
@@ -216,8 +235,8 @@ flush() {
 	$IPTABLES -t raw    -X
 }
 
-stop() {
-	flush
+stopfw() {
+	flushfw
 	killall tcprelay
 #	iptables-restore </etc/iptables.rules
 }
@@ -242,15 +261,6 @@ case "$1" in
   status)
 	status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
 	;;
-  #reload|force-reload)
-	#
-	# If do_reload() is not implemented then leave this commented out
-	# and leave 'force-reload' as an alias for 'restart'.
-	#
-	#log_daemon_msg "Reloading $DESC" "$NAME"
-	#do_reload
-	#log_end_msg $?
-	#;;
   restart|force-reload)
 	#
 	# If the "reload" option is implemented then remove the
@@ -274,10 +284,8 @@ case "$1" in
 	esac
 	;;
   *)
-	#echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
 	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
 	exit 3
 	;;
 esac
 
-:

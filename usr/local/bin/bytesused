@@ -1,0 +1,49 @@
+#!/bin/sh
+# PURPOSE: Produce a table of bytes used, user since the checkout time in the last 24 hours
+
+CHECKOUT=11  # Checkout time for this hotel (e.g. 11=11 A.M. or 1100 hours)
+FREQ=1       # Frequency this script should be run (can be run by timeoutd)
+
+USAGE=/var/lib/iglooportal/usage.csv
+
+# Read and clear client usage counters
+clientUsage() {
+        sudo iptables -nvx -Z -L acctO | grep -v "^       0 " | tail -n +3 | awk '{print $7,$2}'
+        sudo iptables -nvx -Z -L acctI | grep -v "^       0 " | tail -n +3 | awk '{print $8,$2}'
+}
+
+# Sum usage by IP address
+sumit() { # INPUT: ip bytes; OUTPUT: ip sumOfBytes
+        # sort -n | awk '{t[$1]+=$2} END {for (i in t) {sum+=t[i]; printf "%-16s %10d\n",i,t[i]} printf "%-16s %10d\n","Grand Total: ",sum}'
+        awk '{t[$1]+=$2} END {for (i in t) {printf "%-16s %10d\n",i,t[i]} }'
+}
+
+# Sum usage by user
+sumuser() { # INPUT: usage.csv containing user,bytes AND stdin containing user,bytes; OUTPUT:user,sumOfBytesForEachUser
+	awk -F, '{t[$2]+=$1} END {for (i in t) {printf "%10d,%s\n",t[i],i} }'
+}
+
+# Translate usage by IP to usage by user
+bytesUsed() {
+	clientUsage | sumit | while read ip bytes; do
+		mac=$(arp -na | grep " ($ip) at " | awk '{print $4}')
+		[ "$mac" = "<incomplete>" -o "$mac" = "" ] && continue
+		user=$(iptables -t nat -L auth | grep -i "MAC $mac.*/* USER:" | sed -e 's/.* USER://g' -e 's/ .*//g')
+		[ "$user" = "" ] && continue # Don't know which user to charge for these bytes
+		printf "%10s,%s\n" "$bytes" "$user"
+	done
+}
+
+main() {
+	tzofs=$(date +%:z | sed -e 's/:/*3600+/g' -e 's/$/*60/g' | bc)
+	sinceCkout=$(date +"%s%%86400-($CHECKOUT*3600)+$tzofs" | bc) # Seconds since checkout time
+	msec=$((FREQ*60))
+	if [ "$sinceCkout" -lt $FREQ ]; then # IF checkout time is recent, and last modified before checkout, reset statistics
+		find "$USAGE" -mmin +$mmin -exec rm {} \;
+	fi
+
+	([ -f "$USAGE" ] && cat "$USAGE"; bytesUsed) | sumuser | tee "$USAGE.$$"
+	mv -f "$USAGE.$$" "$USAGE"
+}
+
+main
