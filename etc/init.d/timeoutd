@@ -15,6 +15,7 @@ timeoutd() {
 			fi
 		done
 		/usr/local/bin/bytesused >/var/log/bytesused.log 2>&1 </dev/null
+		/usr/local/bin/checklogins >/var/log/checklogins.log 2>&1 </dev/null
 		sleep $SLEEPTIME
 	done
 }

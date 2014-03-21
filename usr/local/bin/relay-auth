@@ -35,6 +35,7 @@ main() {
 		auth=$(echo "$result" | awk '{print $1}')
 		echo "auth=$auth."
 		if [ "$auth" = "TRUE" ]; then
+			sleep 1 # Avoid race condition (let checklogins cause logout but override it immediately)
 			user=$(echo "$result" | cut -d "'" -f 2)
 			echo /usr/bin/loginip "$ip" "$mac" "$user"
 			/usr/bin/loginip "$ip" '' "$user"
