@@ -37,10 +37,15 @@ bytesUsed() {
 
 main() {
 	tzofs=$(date +%:z | sed -e 's/:/*3600+/g' -e 's/$/*60/g' | bc)
+	[ "$CHECKOUT" = "" ] && { CHECKOUT=11; echo "WARNING: CHECKOUT defaulted to 11" 1>&2; }
 	sinceCkout=$(date +"%s%%86400-($CHECKOUT*3600)+$tzofs" | bc) # Seconds since checkout time
-	msec=$((FREQ*60))
-	if [ "$sinceCkout" -lt $FREQ ]; then # IF checkout time is recent, and last modified before checkout, reset statistics
-		find "$USAGE" -mmin +$mmin -exec rm {} \;
+	[ "$sinceCkout" = "" ] && echo "ERROR in sinceCkout calculation" 1>&2
+	startdate=$(cat "$USAGE" | grep ",STARTDATE$" | cut -d ',' -f 1)
+	age=$(date +"%s-$startdate" | bc)
+	date +"%D %T: bytesused: startdate=$startdate,age=$age,sinceCkout=$sinceCkout,tzofs=$tzofs"
+	if [ "$sinceCkout" -gt 0 -a "$age" -gt 86400 ]; then # IF after checkout time and statistics age > 24hrs, reset statistics
+		echo "Resetting statistics."
+		date +"%s,STARTDATE" >"$USAGE"
 	fi
 
 	([ -f "$USAGE" ] && cat "$USAGE"; bytesUsed) | sumuser | tee "$USAGE.$$"
@@ -49,4 +54,5 @@ main() {
 
 main
 name=$(awk '{print $2}' /root/.ssh/id_dsa.pub | shasum | awk '{print $1}') # Unique name from public key for this firewall
+echo scp "$USAGE" www-data@$AUTHSRVR:/var/lib/innproxy/users/$name-usage.csv
 scp "$USAGE" www-data@$AUTHSRVR:/var/lib/innproxy/users/$name-usage.csv

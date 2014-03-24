@@ -4,6 +4,10 @@
 source /etc/iglooportal # AUTHSRVR,CHECKOUT
 
 users=$(ssh www-data@$AUTHSRVR /usr/local/bin/activeusers)
+iptables -t nat -L auth 2>&1 | grep -q "iptables: No chain/target/match by that name." && {
+	date +"%D %T: Restarting firewall because it was down."
+	/etc/init.d/iglooportal start
+}
 iptables -t nat -L auth | grep "MAC " | awk '{print $7" "$9}' | sed -e 's/USER://g' | while read mac user; do
 	[ "${user:0:6}" = "micros" ] && continue
 	echo "$users" | grep -q "^$user$" || {
