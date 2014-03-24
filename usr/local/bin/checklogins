@@ -1,5 +1,7 @@
 #!/bin/bash
-# PURPOSE: Produce a table of bytes used, user since the checkout time in the last 24 hours
+# PURPOSE: Determine if any user currently authorized in firewall should actually be
+#          de-authorized (logged out) e.g. due to being disabled, over usage, or other reason
+#	   as determined by the authentication server.
 
 source /etc/iglooportal # AUTHSRVR,CHECKOUT
 

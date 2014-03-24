@@ -31,4 +31,5 @@ done
 grep -vi ",$mac," "$USERS" >"$USERS.$$"
 mv "$USERS.$$" "$USERS"
 
+echo ssh www-data@$AUTHSRVR logoutwebuser "$user"
 ssh www-data@$AUTHSRVR logoutwebuser "$user"
