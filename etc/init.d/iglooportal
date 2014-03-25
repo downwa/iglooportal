@@ -22,6 +22,7 @@ NAME=tcprelay
 DAEMON=/usr/local/bin/$NAME
 
 # Ports for HTTP, HTTPS Client -> Internet
+PORT0=8080
 PORT1=80
 PORT2=443
 PORT3=447
@@ -55,11 +56,14 @@ FM1=$NET.9 # Test client
 FM2=$NET.2 # Micros server on Corporate LAN contacts micros client on Diner LAN (in reverse order)
 
 DAEMON_ARGS_COMMON="--ip-as-port --minimal-log --quiet --nodisplay-log --connexe /usr/local/bin/relay-auth"
+DAEMON_ARGS_NOAUTH="--ip-as-port --minimal-log --quiet --nodisplay-log"
+DAEMON_ARGS0="--listen-port ${PORT0} --server $TO1:80         --log-file /var/log/tcprelay${PORT0}.log $DAEMON_ARGS_NOAUTH"
 DAEMON_ARGS1="--listen-port ${PORT1} --server $TO1:80${PORT1} --log-file /var/log/tcprelay${PORT1}.log $DAEMON_ARGS_COMMON"
 DAEMON_ARGS2="--listen-port ${PORT2} --server $TO1:${PORT3}   --log-file /var/log/tcprelay${PORT2}.log $DAEMON_ARGS_COMMON"
 DAEMON_ARGS3="--listen-port ${PORT3} --server $TO2:${PORT3}   --log-file /var/log/tcprelay${PORT3}.log $DAEMON_ARGS_COMMON"
-DAEMON_ARGS4="--listen-port ${PORT4} --server $FM1:${PORT4}   --log-file /var/log/tcprelay${PORT4}.log $DAEMON_ARGS_COMMON"
-DAEMON_ARGS5="--listen-port ${PORT5} --server $FM2:${PORT5}   --log-file /var/log/tcprelay${PORT5}.log $DAEMON_ARGS_COMMON"
+DAEMON_ARGS4="--listen-port ${PORT4} --server $FM1:${PORT4}   --log-file /var/log/tcprelay${PORT4}.log $DAEMON_ARGS_NOAUTH"
+DAEMON_ARGS5="--listen-port ${PORT5} --server $FM2:${PORT5}   --log-file /var/log/tcprelay${PORT5}.log $DAEMON_ARGS_NOAUTH"
+PIDFILE0=/var/run/$NAME$PORT0.pid
 PIDFILE1=/var/run/$NAME$PORT1.pid
 PIDFILE2=/var/run/$NAME$PORT2.pid
 PIDFILE3=/var/run/$NAME$PORT3.pid
@@ -99,10 +103,16 @@ do_start() {
 	#   1 if daemons were already running
 	#   2 if any daemon could not be started
 	start-stop-daemon --start --quiet --exec $DAEMON --test > /dev/null || return 1
+	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE0 --exec $DAEMON -- $DAEMON_ARGS0 >/var/log/tr0.log || return 2
+	sleep 1
 	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE1 --exec $DAEMON -- $DAEMON_ARGS1 >/var/log/tr1.log || return 2
+	sleep 1
 	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE2 --exec $DAEMON -- $DAEMON_ARGS2 >/var/log/tr2.log || return 2
+	sleep 1
 	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE3 --exec $DAEMON -- $DAEMON_ARGS3 >/var/log/tr3.log || return 2
+	sleep 1
 	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE4 --exec $DAEMON -- $DAEMON_ARGS4 >/var/log/tr4.log || return 2
+	sleep 1
 	start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE5 --exec $DAEMON -- $DAEMON_ARGS5 >/var/log/tr5.log || return 2
 	# Add code here, if necessary, that waits for the process to be ready
 	# to handle requests from services started subsequently which depend
