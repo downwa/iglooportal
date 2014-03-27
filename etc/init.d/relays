@@ -1,0 +1,223 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          relays
+# Required-Start:    $all
+# Required-Stop:     $all
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Firewall configuration for hotel captive portal
+# Description:       This init script maintains TCP relays between portal (firewall) and authentication server
+### END INIT INFO
+
+# Author: Warren Downs <wdowns@choggiung.com>
+#
+
+# Do NOT "set -e"
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="Hotel Captive Portal Relays"
+NAME=tcprelay
+DAEMON=/usr/local/bin/$NAME
+
+# Ports for HTTP, HTTPS Client -> Internet
+PORT0=8080
+PORT1=80
+PORT2=443
+PORT3=447
+
+# Ports for VNC, Micros LAN -> Client
+PORT4=5900
+PORT5=9054
+
+# Internet interface, Client interface
+INET=eth0
+CLI=eth1
+
+# Router IP and Network
+RIP=$(ifconfig "$CLI" | grep "inet addr:" | awk '{print $2}' | cut -d ':' -f 2)
+NET=${RIP%.*}
+
+TO1=innproxy     # Authentication server
+
+# Redirect for SSL.  This is to share a single SSL certificate between hotel public site, and hotel WiFi portal.
+# This is the public address of the hotel website, to which we forward clients who request port 447 (the
+# hotel public SSL port).  This forwarding is ignored by the firewall if the client is not authenticated, and
+# they will instead be directed by iptables rule to port 443, which is forwarded to authentication server.
+# However, once authenticated, the client will be allowed to access port 447.  But name resolution is still
+# pointing them to the router IP, which is why we have to do this forwarding in case they should really be
+# attempting to access our hotel public site while using our hotel WiFi.
+# NOTE: It might be a nice touch to have the firewall allow access to our hotel public site even when not
+# authenticated.  However, it would open up our network to anyone for attempted breakin or Denial of Service.
+TO2=reserve.bristolinn.com
+
+FM1=$NET.9 # Test client
+FM2=$NET.2 # Micros server on Corporate LAN contacts micros client on Diner LAN (in reverse order)
+
+DAEMON_ARGS_COMMON="--ip-as-port --minimal-log --quiet --nodisplay-log --connexe /usr/local/bin/relay-auth"
+DAEMON_ARGS_NOAUTH="--ip-as-port --minimal-log --quiet --nodisplay-log"
+DAEMON_ARGS0="--listen-port ${PORT0} --server $TO1:80         --log-file /var/log/tcprelay${PORT0}.log $DAEMON_ARGS_NOAUTH"
+DAEMON_ARGS1="--listen-port ${PORT1} --server $TO1:80${PORT1} --log-file /var/log/tcprelay${PORT1}.log $DAEMON_ARGS_COMMON"
+DAEMON_ARGS2="--listen-port ${PORT2} --server $TO1:${PORT3}   --log-file /var/log/tcprelay${PORT2}.log $DAEMON_ARGS_COMMON"
+DAEMON_ARGS3="--listen-port ${PORT3} --server $TO2:${PORT3}   --log-file /var/log/tcprelay${PORT3}.log $DAEMON_ARGS_COMMON"
+DAEMON_ARGS4="--listen-port ${PORT4} --server $FM1:${PORT4}   --log-file /var/log/tcprelay${PORT4}.log $DAEMON_ARGS_NOAUTH"
+DAEMON_ARGS5="--listen-port ${PORT5} --server $FM2:${PORT5}   --log-file /var/log/tcprelay${PORT5}.log $DAEMON_ARGS_NOAUTH"
+PIDFILE0=/var/run/$NAME$PORT0.pid
+PIDFILE1=/var/run/$NAME$PORT1.pid
+PIDFILE2=/var/run/$NAME$PORT2.pid
+PIDFILE3=/var/run/$NAME$PORT3.pid
+PIDFILE4=/var/run/$NAME$PORT4.pid
+PIDFILE5=/var/run/$NAME$PORT5.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+#
+# Function that starts the daemon/service
+#
+do_start() {
+	# Start relay daemons (forward internal HTTP/HTTPS requests to authentication server, and forward certain external services to Wireless LAN)
+	# Return
+	#   0 if daemons have been started
+	#   1 if daemons were already running
+	#   2 if any daemon could not be started
+	keep_started </dev/null >/var/log/tr.log 2>&1 &
+	# Add code here, if necessary, that waits for the process to be ready
+	# to handle requests from services started subsequently which depend
+	# on this one.  As a last resort, sleep for some time.
+
+	sleep 2
+	# Display status of relays
+	stsrelay
+
+	return 0
+}
+
+
+keep_started() {
+	date +"%D %T: keep_started"
+	while [ true ]; do
+		date +"%D %T: checking"
+		for file in $PIDFILE0 $PIDFILE1 $PIDFILE2 $PIDFILE3 $PIDFILE4 $PIDFILE5; do
+			pid=$(cat "$file" 2>/dev/null)
+			if [ "$pid" = "" ]; then
+				restart=true
+			else
+				pidof tcprelay | grep -q "$pid" || restart=true # If pid is not found running
+			fi
+			if [ "$restart" = "true" ]; then
+				date +"%D %T: Starting $PIDFILE"
+				[ "$file" = "$PIDFILE0" ] && { start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE0 --exec $DAEMON -- $DAEMON_ARGS0 >/var/log/tr0.log; }
+				[ "$file" = "$PIDFILE1" ] && { start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE1 --exec $DAEMON -- $DAEMON_ARGS1 >/var/log/tr1.log; }
+				[ "$file" = "$PIDFILE2" ] && { start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE2 --exec $DAEMON -- $DAEMON_ARGS2 >/var/log/tr2.log; }
+				[ "$file" = "$PIDFILE3" ] && { start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE3 --exec $DAEMON -- $DAEMON_ARGS3 >/var/log/tr3.log; }
+				[ "$file" = "$PIDFILE4" ] && { start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE4 --exec $DAEMON -- $DAEMON_ARGS4 >/var/log/tr4.log; }
+				[ "$file" = "$PIDFILE5" ] && { start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE5 --exec $DAEMON -- $DAEMON_ARGS5 >/var/log/tr5.log; }
+			fi
+		done
+		date +"%D %T: done checking"
+		sleep 10
+	done
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop() {
+	# Stop relay daemons
+	# Return
+	#   0 if all daemons have been stopped
+	#   1 if daemon was already stopped
+	#   2 if any daemon could not be stopped
+	#   other if a failure occurred
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE1 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE2 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE3 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE4 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE5 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
+	# Wait for children to finish too if this is a daemon that forks
+	# and if the daemon is only ever run from this initscript.
+	# If the above conditions are not satisfied then add some other code
+	# that waits for the process to drop all resources that could be
+	# needed by services started subsequently.  A last resort is to
+	# sleep for some time.
+	start-stop-daemon --stop --quiet --oknodo --retry=0/30/KILL/5 --exec $DAEMON
+	[ "$?" = 2 ] && return 2
+	# Many daemons don't delete their pidfiles when they exit.
+	rm -f $PIDFILE1 $PIDFILE2 $PIDFILE3 $PIDFILE4 $PIDFILE5
+	killall relays
+	return "$RETVAL"
+}
+
+stsrelay() {
+	echo "Relay status..."
+        /bin/netstat -nlp | grep tcprelay
+}
+
+case "$1" in
+  start)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+	do_start
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
+	;;
+  stop)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+	do_stop
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
+	;;
+  status)
+	stsrelay
+	status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+	;;
+  restart|force-reload)
+	#
+	# If the "reload" option is implemented then remove the
+	# 'force-reload' alias
+	#
+	log_daemon_msg "Restarting $DESC" "$NAME"
+	do_stop
+	case "$?" in
+	  0|1)
+		do_start
+		case "$?" in
+			0) log_end_msg 0 ;;
+			1) log_end_msg 1 ;; # Old process is still running
+			*) log_end_msg 1 ;; # Failed to start
+		esac
+		;;
+	  *)
+		# Failed to stop
+		log_end_msg 1
+		;;
+	esac
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+	exit 3
+	;;
+esac
+

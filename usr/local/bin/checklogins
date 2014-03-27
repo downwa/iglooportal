@@ -5,7 +5,8 @@
 
 source /etc/iglooportal # AUTHSRVR,CHECKOUT
 
-users=$(ssh www-data@$AUTHSRVR /usr/local/bin/activeusers)
+macip=$(echo $(ifconfig eth0 | egrep "inet addr:|HWaddr" | cut -d ':' -f 2-) | awk '{print $3" "$4}')
+users=$(ssh www-data@$AUTHSRVR /usr/local/bin/activeusers $macip)
 iptables -t nat -L auth 2>&1 | grep -q "iptables: No chain/target/match by that name." && {
 	date +"%D %T: Restarting firewall because it was down."
 	/etc/init.d/iglooportal start
