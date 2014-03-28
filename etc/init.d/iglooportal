@@ -48,7 +48,6 @@ do_start() {
 	/etc/init.d/timeoutd start
 
 	# Restart relays
-	killall relays
 	/etc/init.d/relays start
 
 	# Display status of relays

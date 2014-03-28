@@ -137,12 +137,16 @@ keep_started() {
 # Function that stops the daemon/service
 #
 do_stop() {
+	pid=$(ps waxf | grep relays.*start | grep -v grep | awk '{print $1}')
+	[ "$pid" != "" ] && kill $pid
 	# Stop relay daemons
 	# Return
 	#   0 if all daemons have been stopped
 	#   1 if daemon was already stopped
 	#   2 if any daemon could not be stopped
 	#   other if a failure occurred
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE0 --name $NAME
+	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE1 --name $NAME
 	RETVAL="$?"; [ "$RETVAL" = 2 ] && return 2
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE2 --name $NAME
@@ -159,11 +163,10 @@ do_stop() {
 	# that waits for the process to drop all resources that could be
 	# needed by services started subsequently.  A last resort is to
 	# sleep for some time.
-	start-stop-daemon --stop --quiet --oknodo --retry=0/30/KILL/5 --exec $DAEMON
-	[ "$?" = 2 ] && return 2
+#	start-stop-daemon --stop --quiet --oknodo --retry=0/30/KILL/5 --exec $DAEMON
+#	[ "$?" = 2 ] && return 2
 	# Many daemons don't delete their pidfiles when they exit.
 	rm -f $PIDFILE1 $PIDFILE2 $PIDFILE3 $PIDFILE4 $PIDFILE5
-	killall relays
 	return "$RETVAL"
 }
 

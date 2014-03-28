@@ -32,7 +32,7 @@ stop() {
 status() {
 	echo -n "timeoutd: "
 	pid=$(cat /var/run/timeoutd.pid 2>/dev/null)
-	apid=$(ps waxf | grep ^$pid)
+	apid=$(ps waxf | grep timeoutd.*start | grep -v grep | awk '{print $1}' | grep ^$pid)
 	if [ "$apid" != "" ]; then
 		echo "Running pid=$pid."
 	else
