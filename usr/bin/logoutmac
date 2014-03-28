@@ -21,11 +21,14 @@ ip=$(arpip "$mac") # May have no IP address if not logged in.  That's okay, we c
 date +"%D %T: logoutmac"
 [ "$ip" != "" ] && /usr/bin/rmtrack "$ip"
 
+tries=0
 while [ true ]; do
-	$IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user \*\/$" || { echo "MAC address $mac is not authorized."; break; }
+	$IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user.*\*\/$" || { echo "MAC address $mac is not authorized."; break; }
 
 	echo $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
 	$IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+	tries=$((tries+1))
+	[ "$tries" -gt 10 ] && break # Hopeless
 done
 
 grep -vi ",$mac," "$USERS" >"$USERS.$$"
