@@ -43,10 +43,4 @@ main() {
 	fi
 }
 
-# Rename duplicate logs
-for((x=9; x>=0; x--)); do
-	y=$((x+1))
-	mv /var/log/relay-auth-$ip.log.$x /var/log/relay-auth-$ip.log.$y
-done
-mv /var/log/relay-auth-$ip.log /var/log/relay-auth-$ip.log.0
 main "$ip" >/var/log/relay-auth-$ip.log 2>&1
