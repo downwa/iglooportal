@@ -29,7 +29,7 @@ bytesUsed() {
 	clientUsage | sumit | while read ip bytes; do
 		mac=$(arp -na | grep " ($ip) at " | awk '{print $4}')
 		[ "$mac" = "<incomplete>" -o "$mac" = "" ] && continue
-		user=$(iptables -t nat -L auth | grep -i "MAC $mac.*/* USER:" | sed -e 's/.* USER://g' -e 's/ .*//g')
+		user=$(iptables -t nat -L auth | grep -i "MAC $mac.*/* USER:" | sed -e 's/.* USER://g' -e 's/ \*\/$//g');
 		[ "$user" = "" ] && continue # Don't know which user to charge for these bytes
 		printf "%10s,%s\n" "$bytes" "$user"
 	done

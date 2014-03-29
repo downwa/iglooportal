@@ -1,9 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 IPTABLES=/sbin/iptables
 ARP=/usr/sbin/arp
 USERS=/var/lib/iglooportal/users.txt
 QUOTA=104857600 # 100 Mb
+
+source /etc/iglooportal
 
 ip=$1
 [ "$ip" = "" ] && echo "Missing IP address" 1>&2 && exit 1
@@ -38,3 +40,6 @@ $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "
 
 # Only add if not already in USERS file
 grep -qi ",$mac,.*,$user" "$USERS" || date +"%D %T,$mac,$ip,$user" >> "$USERS"
+
+echo ssh www-data@$AUTHSRVR dologin $ip $mac $user
+ssh www-data@$AUTHSRVR dologin "$ip" "$mac" "$user" 2>&1 | tee /tmp/lastlogin.err

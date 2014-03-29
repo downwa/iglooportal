@@ -48,7 +48,7 @@ do_start() {
 	/etc/init.d/timeoutd start
 
 	# Restart relays
-	/etc/init.d/relays start
+	/etc/init.d/relays start | egrep -v "Relay status|tcp.*LISTEN" # We'll see it all again below...
 
 	# Display status of relays
 	stsrelay

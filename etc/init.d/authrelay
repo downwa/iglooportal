@@ -1,0 +1,75 @@
+#!/bin/bash
+
+source /etc/iglooportal
+
+SESSIONS="/var/lib/iglooportal/sessions"
+DNAME=authrelay
+
+daemon() {
+	date +"%D %T: $DNAME started"
+	echo $BASHPID >/var/run/$DNAME.pid
+
+	# Keep up to date directory of sessions and users that claim them
+	firewall=$(ifconfig eth0 | grep HWaddr | awk '{print $5}' | sed -e 's/:/-/g')
+	mkdir -p "$SESSIONS"
+	while [ true ]; do
+		echo ssh www-data@$AUTHSRVR authrelay $firewall
+		ssh www-data@$AUTHSRVR authrelay $firewall | while read session user; do
+			if [ "$user" != "" ]; then
+				echo "$user" >"$SESSIONS/$session"
+			else
+				user=$(cat "$SESSIONS/$session")
+				mac=$(iptables -t nat -L auth | grep "/* USER:$user \*/$" | awk '{print $7}')
+				echo "mac=$mac,user=$user"
+				/usr/bin/logoutmac "$mac" "$user" >/var/log/$DNAME.logout
+				rm "$SESSIONS/$session" # Timed out
+			fi
+		done
+		sleep 10
+	done
+}
+
+stop() {
+	pid=$(cat /var/run/$DNAME.pid 2>/dev/null)
+	spid=$(ps waxf | grep ssh.*authrelay | grep -v grep)
+	if [ "$pid" != "" ]; then
+		kill $pid 2>/dev/null
+		sleep 1
+		kill -9 $pid 2>/dev/null
+	fi
+	if [ "$spid" != "" ]; then
+		kill $spid 2>/dev/null
+		sleep 1
+		kill -9 $spid 2>/dev/null
+	fi
+}
+
+status() {
+	echo -n "$DNAME: "
+	pid=$(cat /var/run/$DNAME.pid 2>/dev/null)
+	apid=$(ps waxf | grep $DNAME.*start | grep -v grep | awk '{print $1}' | grep ^$pid)
+	if [ "$apid" != "" ]; then
+		echo "Running pid=$pid."
+	else
+		echo "Stopped."
+	fi
+}
+
+case $1 in
+	restart|start)
+		stop # Any existing copy
+		daemon </dev/null >/var/log/$DNAME.log 2>&1 &
+		sleep 1
+		status
+	;;
+	stop)
+		stop
+		status
+	;;
+	status)
+		status
+	;;
+	*)
+		echo "Requires start|stop|status"
+	;;
+esac

@@ -1,6 +1,10 @@
 #!/bin/bash
 
 FREQ=1 # How many minutes between runs
+SESSIONS="/var/lib/innproxy/sessions/"
+
+server=$1
+[ "$server" = "" ] && echo "Missing firewall server" 1>&2 && exit 1
 
 timeoutd() {
 	date +"%D %T: timeoutd started"
@@ -58,3 +62,4 @@ case $1 in
 		echo "Requires start|stop|status"
 	;;
 esac
+

@@ -1,9 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 IPTABLES=/sbin/iptables
 ARP=/usr/sbin/arp
 USERS=/var/lib/iglooportal/users.txt
 QUOTA=104857600 # 100 Mb
+
+source /etc/iglooportal # AUTHSRVR
 
 ip=$1
 [ "$ip" = "" ] && echo "Missing IP address" 1>&2 && exit 1
@@ -34,7 +36,7 @@ mac() {
 
 tries=0
 while [ true ]; do
-	$IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user.*\*\/$" || { echo "MAC address $mac is not authorized."; break; }
+	$IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user \*\/$" || { echo "MAC address $mac is not authorized."; break; }
 
 	echo $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
 	$IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
