@@ -50,6 +50,9 @@ do_start() {
 	# Restart relays
 	/etc/init.d/relays start | egrep -v "Relay status|tcp.*LISTEN" # We'll see it all again below...
 
+	# Start authrelay
+	/etc/init.d/authrelay start
+
 	# Display status of relays
 	stsrelay
 
@@ -67,6 +70,9 @@ do_stop() {
 
 	# Stop relays
 	/etc/init.d/relays stop
+
+	# Stop authrelay
+        /etc/init.d/authrelay stop
 }
 
 startfw() {
