@@ -24,9 +24,9 @@ sumuser() { # INPUT: usage.csv containing bytes,user, AND stdin containing bytes
 	awk -F, '{t[$2]+=$1} END {for (i in t) {printf "%10d,%s,\n",t[i],i} }'
 }
 
-# Sum usage by mac, record user for each mac
-summac() { # INPUT: usage.csv containing bytes,user,mac AND stdin containing bytes,user,mac; OUTPUT:sumOfBytesForEachMAC,user,mac
-	awk -F, '{t[$3]+=$1;u[$3]=$2;} END {for (i in t) {printf "%10d,%s,%s\n",t[i],u[i],i} }'
+# Sum usage by mac, record user,host for each mac
+summac() { # INPUT: usage.csv containing bytes,user,mac,host AND stdin containing bytes,user,mac,host; OUTPUT:sumOfBytesForEachMAC,user,mac,host
+	awk -F, '{t[$3]+=$1;u[$3]=$2;h[$3]=$4;} END {for (i in t) {printf "%10d,%s,%s,%s\n",t[i],u[i],i,h[i]} }'
 }
 
 # Translate usage by IP to usage by user
@@ -35,8 +35,9 @@ bytesUsed() {
 		mac=$(arp -na | grep " ($ip) at " | awk '{print $4}')
 		[ "$mac" = "<incomplete>" -o "$mac" = "" ] && continue
 		user=$(iptables -t nat -L auth | grep -i "MAC $mac.*/* USER:" | sed -e 's/.* USER://g' -e 's/ \*\/$//g');
-		[ "$user" = "" ] && continue # Don't know which user to charge for these bytes
-		printf "%10s,%s,%s\n" "$bytes" "$user" "$mac"
+		#[ "$user" = "" ] && continue # Don't know which user to charge for these bytes
+		host=$(grep -A10 "^lease $ip {" /var/lib/dhcp/dhcpd.leases | tail -n 11 | grep client-hostname | cut -d '"' -f 2)
+		printf "%10s,%s,%s,%s\n" "$bytes" "$user" "$mac" "$host"
 	done
 }
 
