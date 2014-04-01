@@ -58,10 +58,11 @@ main() {
 	echo "HOURLY USAGE:"
 	mm=$(date +%M)
 	[ "$mm" = "00" ] && rm -f "$USEHR" # Recycle this hour from a day ago.
-	([ -f "$USEHR" ] && cat "$USEHR"; bytesUsed) | summac | tee "$USEHR.$$"
+	used=$(bytesUsed);
+	([ -f "$USEHR" ] && cat "$USEHR"; echo "$used") | summac | tee "$USEHR.$$"
 	mv -f "$USEHR.$$" "$USEHR"
 	echo "DAILY USAGE:"
-	([ -f "$USAGE" ] && cat "$USAGE"; bytesUsed) | sumuser | tee "$USAGE.$$"
+	([ -f "$USAGE" ] && cat "$USAGE"; echo "$used") | sumuser | tee "$USAGE.$$"
 	mv -f "$USAGE.$$" "$USAGE"
 }
 
