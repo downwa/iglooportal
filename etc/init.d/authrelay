@@ -20,9 +20,11 @@ daemon() {
 			else
 				user=$(cat "$SESSIONS/$session")
 				mac=$(iptables -t nat -L auth | grep "/* USER:$user \*/$" | awk '{print $7}')
-				echo "mac=$mac,user=$user"
-				/usr/bin/logoutmac "$mac" "$user" >/var/log/$DNAME.logout
-				rm "$SESSIONS/$session" # Timed out
+				if [ "$mac" != "" ]; then
+					echo "mac=$mac,user=$user"
+					/usr/bin/logoutmac "$mac" "$user" >/var/log/$DNAME.logout
+				fi
+				[ -f "$SESSIONS/$session" ] && rm "$SESSIONS/$session" # Timed out
 			fi
 		done
 		sleep 10

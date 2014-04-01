@@ -1,9 +1,9 @@
 #!/bin/bash
 # PURPOSE: Produce a table of bytes used, user since the checkout time in the last 24 hours
-
-FREQ=1       # Frequency this script should be run (can be run by timeoutd)
+# NOTE: Also records a detailed usage by MAC address for each hour in the last 24 hours, in USEHR files
 
 USAGE=/var/lib/iglooportal/usage.csv
+USEHR=$(date +"/var/lib/iglooportal/usehr-%H.csv")
 
 source /etc/iglooportal # AUTHSRVR,CHECKOUT
 
@@ -19,9 +19,14 @@ sumit() { # INPUT: ip bytes; OUTPUT: ip sumOfBytes
         awk '{t[$1]+=$2} END {for (i in t) {printf "%-16s %10d\n",i,t[i]} }'
 }
 
-# Sum usage by user
-sumuser() { # INPUT: usage.csv containing user,bytes AND stdin containing user,bytes; OUTPUT:user,sumOfBytesForEachUser
-	awk -F, '{t[$2]+=$1} END {for (i in t) {printf "%10d,%s\n",t[i],i} }'
+# Sum usage by user (loses mac address input in process)
+sumuser() { # INPUT: usage.csv containing bytes,user, AND stdin containing bytes,user,mac; OUTPUT:sumOfBytesForEachUser,user,
+	awk -F, '{t[$2]+=$1} END {for (i in t) {printf "%10d,%s,\n",t[i],i} }'
+}
+
+# Sum usage by mac, record user for each mac
+summac() { # INPUT: usage.csv containing bytes,user,mac AND stdin containing bytes,user,mac; OUTPUT:sumOfBytesForEachMAC,user,mac
+	awk -F, '{t[$3]+=$1;u[$3]=$2;} END {for (i in t) {printf "%10d,%s,%s\n",t[i],u[i],i} }'
 }
 
 # Translate usage by IP to usage by user
@@ -31,7 +36,7 @@ bytesUsed() {
 		[ "$mac" = "<incomplete>" -o "$mac" = "" ] && continue
 		user=$(iptables -t nat -L auth | grep -i "MAC $mac.*/* USER:" | sed -e 's/.* USER://g' -e 's/ \*\/$//g');
 		[ "$user" = "" ] && continue # Don't know which user to charge for these bytes
-		printf "%10s,%s\n" "$bytes" "$user"
+		printf "%10s,%s,%s\n" "$bytes" "$user" "$mac"
 	done
 }
 
@@ -40,19 +45,27 @@ main() {
 	[ "$CHECKOUT" = "" ] && { CHECKOUT=11; echo "WARNING: CHECKOUT defaulted to 11" 1>&2; }
 	sinceCkout=$(date +"%s%%86400-($CHECKOUT*3600)+$tzofs" | bc) # Seconds since checkout time
 	[ "$sinceCkout" = "" ] && echo "ERROR in sinceCkout calculation" 1>&2
-	startdate=$(cat "$USAGE" | grep ",STARTDATE$" | cut -d ',' -f 1)
+	startdate=$(cat "$USAGE" | grep ",STARTDATE," | cut -d ',' -f 1)
+	[ "$startdate" = "" ] && startdate=0
 	age=$(date +"%s-$startdate" | bc)
 	date +"%D %T: bytesused: startdate=$startdate,age=$age,sinceCkout=$sinceCkout,tzofs=$tzofs"
 	if [ "$sinceCkout" -gt 0 -a "$age" -gt 86400 ]; then # IF after checkout time and statistics age > 24hrs, reset statistics
 		echo "Resetting statistics."
-		date +"%s,STARTDATE" >"$USAGE"
+		date +"%s,STARTDATE," >"$USAGE"
 	fi
 
+	echo "HOURLY USAGE:"
+	mm=$(date +%M)
+	[ "$mm" = "00" ] && rm -f "$USEHR" # Recycle this hour from a day ago.
+	([ -f "$USEHR" ] && cat "$USEHR"; bytesUsed) | summac | tee "$USEHR.$$"
+	mv -f "$USEHR.$$" "$USEHR"
+	echo "DAILY USAGE:"
 	([ -f "$USAGE" ] && cat "$USAGE"; bytesUsed) | sumuser | tee "$USAGE.$$"
 	mv -f "$USAGE.$$" "$USAGE"
 }
 
 main
-name=$(awk '{print $2}' /root/.ssh/id_dsa.pub | shasum | awk '{print $1}') # Unique name from public key for this firewall
-echo scp "$USAGE" www-data@$AUTHSRVR:/var/lib/innproxy/users/$name-usage.csv
-scp "$USAGE" www-data@$AUTHSRVR:/var/lib/innproxy/users/$name-usage.csv
+name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}' | sed -e 's/:/-/g') # Unique name from MAC address of this firewall
+ssh www-data@$AUTHSRVR mkdir -p "/var/lib/innproxy/users/$name"
+echo scp "$USEHR" "$USAGE" "www-data@$AUTHSRVR:/var/lib/innproxy/users/$name/"
+scp "$USEHR" "$USAGE" "www-data@$AUTHSRVR:/var/lib/innproxy/users/$name/"
