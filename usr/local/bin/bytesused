@@ -52,7 +52,8 @@ main() {
 	date +"%D %T: bytesused: startdate=$startdate,age=$age,sinceCkout=$sinceCkout,tzofs=$tzofs"
 	if [ "$sinceCkout" -gt 0 -a "$age" -gt 86400 ]; then # IF after checkout time and statistics age > 24hrs, reset statistics
 		echo "Resetting statistics."
-		date +"%s,STARTDATE," >"$USAGE"
+		ckout=$(date +"%s-$sinceCkout" | bc) # Checkout time
+		echo "$ckout,STARTDATE," >"$USAGE"
 	fi
 
 	echo "HOURLY USAGE:"
