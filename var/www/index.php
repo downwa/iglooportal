@@ -19,7 +19,7 @@ if(file_exists($file)) {
 		$result=shell_exec($cmd);
 		if(substr($result, 0, 14) == "/sbin/iptables") {
 			sleep(3);
-			header("Location: http://192.168.42.1:8080/status/?session=$session&count=0&redirect=$redirect");
+			header("Location: https://reserve.bristolinn.com:8444/status/index.php?session=$session&count=0&redirect=$redirect");
 			return;
 		}
 		$error0="ERROR: cmd=".$cmd."; result=".$result;

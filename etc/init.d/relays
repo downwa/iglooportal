@@ -22,7 +22,7 @@ NAME=tcprelay
 DAEMON=/usr/local/bin/$NAME
 
 # Ports for HTTP, HTTPS Client -> Internet
-PORT0=8080
+PORT0=8444
 PORT1=80
 PORT2=443
 PORT3=447
@@ -56,7 +56,7 @@ FM1=$NET.9 # Test client
 FM2=$NET.2 # Micros server on Corporate LAN contacts micros client on Diner LAN (in reverse order)
 
 DAEMON_ARGS_COMMON="--ip-as-port --minimal-log --quiet --nodisplay-log"
-DAEMON_ARGS0="--listen-port ${PORT0} --server $TO1:80         --log-file /var/log/tcprelay${PORT0}.log $DAEMON_ARGS_COMMON"
+DAEMON_ARGS0="--listen-port ${PORT0} --server $TO1:443        --log-file /var/log/tcprelay${PORT0}.log $DAEMON_ARGS_COMMON"
 DAEMON_ARGS1="--listen-port ${PORT1} --server $TO1:80${PORT1} --log-file /var/log/tcprelay${PORT1}.log $DAEMON_ARGS_COMMON"
 DAEMON_ARGS2="--listen-port ${PORT2} --server $TO1:${PORT3}   --log-file /var/log/tcprelay${PORT2}.log $DAEMON_ARGS_COMMON"
 DAEMON_ARGS3="--listen-port ${PORT3} --server $TO2:${PORT3}   --log-file /var/log/tcprelay${PORT3}.log $DAEMON_ARGS_COMMON"
@@ -112,11 +112,13 @@ keep_started() {
 		date +"%D %T: checking"
 		for file in $PIDFILE0 $PIDFILE1 $PIDFILE2 $PIDFILE3 $PIDFILE4 $PIDFILE5; do
 			pid=$(cat "$file" 2>/dev/null)
+			restart=false
 			if [ "$pid" = "" ]; then
 				restart=true
 			else
 				pidof tcprelay | grep -q "$pid" || restart=true # If pid is not found running
 			fi
+			echo "Checking pid=$pid,restart=$restart,file=$file,$DAEMON_ARGS0"
 			if [ "$restart" = "true" ]; then
 				date +"%D %T: Starting $PIDFILE"
 				[ "$file" = "$PIDFILE0" ] && { start-stop-daemon --start --quiet -b -m --pidfile $PIDFILE0 --exec $DAEMON -- $DAEMON_ARGS0 >/var/log/tr0.log; }
@@ -136,8 +138,10 @@ keep_started() {
 # Function that stops the daemon/service
 #
 do_stop() {
-	pid=$(ps waxf | grep relays.*start | grep -v grep | awk '{print $1}')
+	PID=$$
+	pid=$(ps waxf | egrep "relays.*start|tcprelay" | grep -v grep | awk '{print $1}' | grep -v "$PID")
 	[ "$pid" != "" ] && kill $pid
+	
 	# Stop relay daemons
 	# Return
 	#   0 if all daemons have been stopped
@@ -202,20 +206,7 @@ case "$1" in
 	#
 	log_daemon_msg "Restarting $DESC" "$NAME"
 	do_stop
-	case "$?" in
-	  0|1)
-		do_start
-		case "$?" in
-			0) log_end_msg 0 ;;
-			1) log_end_msg 1 ;; # Old process is still running
-			*) log_end_msg 1 ;; # Failed to start
-		esac
-		;;
-	  *)
-		# Failed to stop
-		log_end_msg 1
-		;;
-	esac
+	do_start
 	;;
   *)
 	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
