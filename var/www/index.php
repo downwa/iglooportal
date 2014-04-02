@@ -17,7 +17,7 @@ if(file_exists($file)) {
 	if($user != "") {
 		$cmd="sudo /usr/bin/loginip '".$ip."' '' '".$user."'";
 		$result=shell_exec($cmd);
-		if(substr($result, 0, 14) == "/sbin/iptables") {
+		if(substr($result, 0, 14) == "/sbin/iptables" || strpos($result, "already authorized") !== false) {
 			sleep(3);
 			header("Location: https://reserve.bristolinn.com:8444/status/index.php?session=$session&count=0&redirect=$redirect");
 			return;
