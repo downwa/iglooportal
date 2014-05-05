@@ -36,6 +36,7 @@ INET=eth0
 CLI=eth1
 
 # Router IP and Network
+ifup "$CLI"
 RIP=$(ifconfig "$CLI" | grep "inet addr:" | awk '{print $2}' | cut -d ':' -f 2)
 NET=${RIP%.*}
 
@@ -55,7 +56,7 @@ TO2=reserve.bristolinn.com
 FM1=$NET.9 # Test client
 FM2=$NET.2 # Micros server on Corporate LAN contacts micros client on Diner LAN (in reverse order)
 
-DAEMON_ARGS_COMMON="--ip-as-port --minimal-log --quiet --nodisplay-log"
+DAEMON_ARGS_COMMON="--ip-as-port --minimal-log --quiet --nodisplay-log --rotate-log-size-kb 1024 --rotate-log-nb-files 2"
 DAEMON_ARGS0="--listen-port ${PORT0} --server $TO1:443        --log-file /var/log/tcprelay${PORT0}.log $DAEMON_ARGS_COMMON"
 DAEMON_ARGS1="--listen-port ${PORT1} --server $TO1:80${PORT1} --log-file /var/log/tcprelay${PORT1}.log $DAEMON_ARGS_COMMON"
 DAEMON_ARGS2="--listen-port ${PORT2} --server $TO1:${PORT3}   --log-file /var/log/tcprelay${PORT2}.log $DAEMON_ARGS_COMMON"

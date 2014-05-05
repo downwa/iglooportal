@@ -15,12 +15,17 @@ arpip() {
 	$ARP -an | grep -v "<incomplete>" | grep -i ".*at $mac " | sed -e 's/.*(\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)).*at.*/\1/g' | head -n 1
 }
 
+ip=$(arpip "$mac") # May have no IP address if not logged in.  That's okay, we can still authorize based on MAC
 $IPTABLES -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user \*\/$" && echo "MAC address $mac is already authorized." && exit 0
 
-echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user"
-$IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+if [ "$ip" != "" ]; then
+	echo $IPTABLES -t nat -A auth -m mac --mac-source $mac --src $ip -j serv -m comment --comment "USER:$user"
+	$IPTABLES -t nat -A auth -m mac --mac-source $mac --src $ip -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+else
+	echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user"
+	$IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+fi
 
-ip=$(arpip "$mac") # May have no IP address if not logged in.  That's okay, we can still authorize based on MAC
 [ "$ip" != "" ] && /usr/bin/rmtrack "$ip"
 
 # Only add if not already in USERS file

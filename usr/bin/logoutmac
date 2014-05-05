@@ -25,8 +25,13 @@ tries=0
 while [ true ]; do
 	$IPTABLES -n -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user \*\/$" || { echo "MAC address $mac is not authorized."; break; }
 
-	echo $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
-	$IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+	if [ "$ip" != "" ]; then
+		echo $IPTABLES -t nat -D auth -m mac --mac-source $mac --src $ip -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+		$IPTABLES -t nat -D auth -m mac --mac-source $mac --src $ip -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+	else
+		echo $IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+		$IPTABLES -t nat -D auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+	fi
 	tries=$((tries+1))
 	[ "$tries" -gt 10 ] && break # Hopeless
 done

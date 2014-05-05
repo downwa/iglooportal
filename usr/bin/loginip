@@ -34,7 +34,7 @@ mac() {
 $IPTABLES -t nat -L auth | grep -qi "MAC.*$mac.*USER:$user \*\/$" && echo "MAC address $mac is already authorized." && exit 0
 
 echo $IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user"
-$IPTABLES -t nat -A auth -m mac --mac-source $mac -j serv -m comment --comment "USER:$user" #--quota $QUOTA
+$IPTABLES -t nat -A auth -m mac --mac-source $mac --src $ip -j serv -m comment --comment "USER:$user" #--quota $QUOTA
 
 /usr/bin/rmtrack "$ip"
 
