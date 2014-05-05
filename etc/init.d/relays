@@ -40,7 +40,7 @@ ifup "$CLI"
 RIP=$(ifconfig "$CLI" | grep "inet addr:" | awk '{print $2}' | cut -d ':' -f 2)
 NET=${RIP%.*}
 
-TO1=innproxy     # Authentication server
+TO1=innproxy     # Authentication server 
 
 # Redirect for SSL.  This is to share a single SSL certificate between hotel public site, and hotel WiFi portal.
 # This is the public address of the hotel website, to which we forward clients who request port 447 (the
