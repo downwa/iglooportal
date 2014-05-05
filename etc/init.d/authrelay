@@ -3,6 +3,7 @@
 source /etc/iglooportal
 
 SESSIONS="/var/lib/iglooportal/sessions"
+USAGE="/var/lib/iglooportal/usage.csv"
 DNAME=authrelay
 
 daemon() {
@@ -16,7 +17,12 @@ daemon() {
 		echo ssh www-data@$AUTHSRVR authrelay $firewall
 		ssh www-data@$AUTHSRVR authrelay $firewall | while read session user; do
 			if [ "$user" != "" ]; then
-				echo "$user" >"$SESSIONS/$session"
+				if [ "${session:0:8}" = "newuser-" ]; then
+					grep -v ",$user," "$USAGE" >"$USAGE.tmp"
+					mv "$USAGE.tmp" "$USAGE"
+				else
+					echo "$user" >"$SESSIONS/$session"
+				fi
 			else
 				user=$(cat "$SESSIONS/$session")
 				mac=$(iptables -t nat -L auth | grep "/* USER:$user \*/$" | awk '{print $7}')
