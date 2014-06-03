@@ -32,7 +32,7 @@ mac() {
 [ "$mac" = "" ] && mac "$ip"
 [ "$mac" = "" ] && echo "IP address $ip does not translate to a MAC address." 1>&2 && exit 2
 
-/usr/bin/rmtrack "$ip"
+#/usr/bin/rmtrack "$ip"
 
 tries=0
 while [ true ]; do
@@ -45,6 +45,8 @@ while [ true ]; do
 	tries=$((tries+1))
 	[ "$tries" -gt 10 ] && break # Hopeless
 done
+
+/usr/bin/rmtrack "$ip"
 
 grep -vi ",$mac," "$USERS" >"$USERS.$$"
 mv "$USERS.$$" "$USERS"
