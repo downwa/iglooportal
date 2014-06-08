@@ -41,5 +41,7 @@ $IPTABLES -t nat -A auth -m mac --mac-source $mac --src $ip -j serv -m comment -
 # Only add if not already in USERS file
 grep -qi ",$mac,.*,$user" "$USERS" || date +"%D %T,$mac,$ip,$user" >> "$USERS"
 
-echo ssh www-data@$AUTHSRVR dologin $ip $mac $user
-ssh www-data@$AUTHSRVR dologin "$ip" "$mac" "$user" 2>&1 | tee /tmp/lastlogin.err
+#NOTE: No need to "login" on remote server because authentication will already have been done on the front-end.
+#echo ssh www-data@$AUTHSRVR dologin $ip $mac $user
+#ssh www-data@$AUTHSRVR dologin "$ip" "$mac" "$user" 2>&1 | tee /tmp/lastlogin.err
+

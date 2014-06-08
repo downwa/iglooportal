@@ -3,21 +3,42 @@
 #          de-authorized (logged out) e.g. due to being disabled, over usage, or other reason
 #	   as determined by the authentication server.
 
+STATUS="https://wifi.choggiung.com/status.php"
+SESSIONS=/var/lib/iglooportal/sessions/
+
 source /etc/iglooportal # AUTHSRVR,CHECKOUT
 
 mac=$(ifconfig eth0 | grep "HWaddr" | awk '{print $5}')
 ip=$(ifconfig eth0 | grep "inet addr:" | awk '{print $2}' | cut -d ':' -f 2)
 host=$(host "$ip" | grep -v ".arpa.*not found" | awk '{print $5}')
 
-users=$(ssh www-data@$AUTHSRVR /usr/local/bin/activeusers $mac $ip $host)
+#users=$(ssh www-data@$AUTHSRVR /usr/local/bin/activeusers $mac $ip $host)
+badusers=$(
+	(find "$SESSIONS" -name 'session-*' | while read session; do
+		s=$(cat "$session")
+		user=$(echo "$s" | grep "^user=" | cut -d '=' -f 2 | sed -e 's/ /+/g')
+		pass=$(echo "$s" | grep "^pass=" | cut -d '=' -f 2)
+		info=$(curl --show-error --silent --insecure "$STATUS?user=$user&pass=$pass")
+		ipaddr=$(echo "$info" | grep "^ipaddr=" | cut -d '=' -f 2-)
+		overused=$(echo "$info" | grep "^overused=" | cut -d '=' -f 2-)
+		disabled=$(echo "$info" | grep "^disabled=" | cut -d '=' -f 2-)
+		secsleft=$(echo "$info" | grep "^secsleft=" | cut -d '=' -f 2-)
+		if [ "$ipaddr" = "" -o "$overused" = "1" -o "$disabled" = "1" -o "$secsleft" -le 0 ]; then
+			echo "$user"
+		fi
+	done
+	# Find outdated sessions
+	find "$SESSIONS" -name 'session-*' -mmin +5 -exec grep "^user=" {} \; | cut -d '=' -f 2-
+	) | sort | uniq
+)
 iptables -t nat -L auth 2>&1 | grep -q "iptables: No chain/target/match by that name." && {
 	date +"%D %T: Restarting firewall because it was down."
 	/etc/init.d/iglooportal start
 }
-date +"%D %T: checklogins: users=$users"
+date +"%D %T: checklogins: badusers=$badusers"
 iptables -t nat -L auth | grep "MAC " | awk '{print $7" "$9}' | sed -e 's/USER://g' | while read mac user; do
 	[ "${user:0:6}" = "micros" ] && continue
-	echo "$users" | grep -q "^$user$" || {
+	echo "$badusers" | grep -q "^$user$" && {
 		/usr/bin/logoutmac "$mac" "$user"
 	}
 done

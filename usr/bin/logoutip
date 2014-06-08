@@ -4,6 +4,7 @@ IPTABLES=/sbin/iptables
 ARP=/usr/sbin/arp
 USERS=/var/lib/iglooportal/users.txt
 QUOTA=104857600 # 100 Mb
+AUTHURL="https://wifi.choggiung.com/auth.php"
 
 source /etc/iglooportal # AUTHSRVR
 
@@ -51,4 +52,8 @@ done
 grep -vi ",$mac," "$USERS" >"$USERS.$$"
 mv "$USERS.$$" "$USERS"
 
-ssh www-data@$AUTHSRVR logoutwebuser "$user"
+#ssh www-data@$AUTHSRVR logoutwebuser "$user"
+session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; | head -n 1 | cut -d ':' -f 1)
+pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
+echo curl --show-error --silent --insecure "$AUTHURL?user=$user&pass=$pass&ipaddr=&macaddr="
+curl --show-error --silent --insecure "$AUTHURL?user=$user&pass=$pass&ipaddr=&macaddr=" | grep -v OK

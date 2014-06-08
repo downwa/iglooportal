@@ -1,9 +1,12 @@
 #!/bin/bash
 # PURPOSE: Produce a table of bytes used, user since the checkout time in the last 24 hours
 # NOTE: Also records a detailed usage by MAC address for each hour in the last 24 hours, in USEHR files
+# NOTE: Uploads results for each user to $UPDATE site
 
 USAGE=/var/lib/iglooportal/usage.csv
+SESSIONS=/var/lib/iglooportal/sessions
 USEHR=$(date +"/var/lib/iglooportal/usehr-%H.csv")
+UPDATE="https://wifi.choggiung.com/update.php"
 
 source /etc/iglooportal # AUTHSRVR,CHECKOUT
 
@@ -67,8 +70,23 @@ main() {
 	mv -f "$USAGE.$$" "$USAGE"
 }
 
-main
-name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}' | sed -e 's/:/-/g') # Unique name from MAC address of this firewall
-ssh www-data@$AUTHSRVR mkdir -p "/var/lib/innproxy/users/$name"
-echo scp "$USEHR" "$USAGE" "www-data@$AUTHSRVR:/var/lib/innproxy/users/$name/"
-scp "$USEHR" "$USAGE" "www-data@$AUTHSRVR:/var/lib/innproxy/users/$name/"
+main >/dev/null
+#name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}' | sed -e 's/:/-/g') # Unique name from MAC address of this firewall
+name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}') # Unique name from MAC address of this firewall
+
+# Upload information for each user that changed since last time
+cat "$USAGE" | while IFS=" ," read bytes user; do
+	[ "$user" = "" -o "$user" = "STARTDATE" ] && continue
+	#echo "bytes=$bytes,user=$user"
+	ob=$(cat "$SESSIONS/bytes-$user.txt" 2>/dev/null)
+	if [ "$ob" != "$bytes" ]; then
+		echo "$bytes" >"$SESSIONS/bytes-$user.txt";
+		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; | head -n 1 | cut -d ':' -f 1)
+		pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
+		[ "$pass" != "" ] && curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&bytes=$bytes" | grep -v OK
+	fi
+done
+
+#ssh www-data@$AUTHSRVR mkdir -p "/var/lib/innproxy/users/$name"
+#echo scp "$USEHR" "$USAGE" "www-data@$AUTHSRVR:/var/lib/innproxy/users/$name/"
+#scp "$USEHR" "$USAGE" "www-data@$AUTHSRVR:/var/lib/innproxy/users/$name/"

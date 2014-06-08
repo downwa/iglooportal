@@ -1,0 +1,27 @@
+#!/bin/bash
+
+ARP=/usr/sbin/arp
+
+ip=$1
+[ "$ip" = "" ] && echo "Missing IP address" 1>&2 && exit 1
+
+# Extract MAC address from arp table
+arpmac() {
+	ip=$1
+	$ARP -an | grep -v "<incomplete>" | grep ".*($ip)" | sed -e 's/.*(.*).*at.*\([0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]\) .*/\1/g' | head -n 1
+}
+
+# Retrieve MAC address.  If not in arp table, ping to get it there.
+mac() {
+	ip=$1
+	mac=$(arpmac "$ip")
+	if [ "$mac" = "" ]; then # If not found the first time may have timed out or never been accessed before
+		ping -c 1 -f -w 0 -W 1 "$ip" >/dev/null 2>&1 # Bring into arp table
+		#arping -w 0 -c 1 -I br0 "$ip" >/dev/null # Bring into arp table
+		mac=$(arpmac "$ip")
+	fi
+}
+
+[ "$mac" = "" ] && mac "$ip"
+[ "$mac" = "" ] && echo "IP address $ip does not translate to a MAC address." 1>&2 && exit 2
+echo "$mac"

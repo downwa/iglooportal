@@ -1,0 +1,115 @@
+@media screen {
+        body      { background: #fed; }
+        a         { border-style:groove; border-width:2px; }
+        a:link    { color:black; text-decoration:none; }
+        a:visited { color:black; text-decoration:none; }
+        a:hover   { color:#050; text-decoration:none; }
+        a:active  { color:#070; text-decoration:none; }
+        .base     { font-size:14pt; clear:left; float:none; width:560pt; height:16pt; }
+        .join     { float:left; width:100pt; }
+        .title    { font-size:20pt; width:560pt; height:22pt; }
+        .rowhead  { font-size:14pt; width:560pt; text-decoration:underline; }
+        .col      { text-decoration:underline; }
+        .buttons  { width:80pt; } /* 300pt */
+        .joinmeter { float:left; width:250pt; }
+        .act      { background:#abc; }
+        .sel      { background:#def; }
+        .main     { clear:left; }
+        .small    { font-size:8pt; }
+        .print    { display: none; }
+        h4        { float:left;margin-right:4pt; }
+        br        { clear:left; }
+        hr        { clear:left; width:98%; }
+        #ui-datepicker-div { font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif"; font-size: 62.5%; }
+        #cal { position: relative; z-index: 100; left: -22px; top:2px; }
+        
+        .ui-datepicker-trigger { position:relative;top:3px ;right:20px ; height:16px }
+        #uid        { width:86pt; }
+        #datepicker { width:80pt; }
+        .hasIP      { background-color: #def; }
+        .isDisabled { background-color: #700; color: #fed; }
+        .meter { 
+					float: left;
+					height: 20px;  /* Can be anything */
+					width: 250pt;
+					/*position: relative; */
+					background: #dcb;
+					-moz-border-radius: 10px;
+					-webkit-border-radius: 10px;
+					border-radius: 10px;
+					padding: 0px;
+					-webkit-box-shadow: inset 0 -1px 1px rgba(255,255,255,0.3);
+					-moz-box-shadow   : inset 0 -1px 1px rgba(255,255,255,0.3);
+					box-shadow        : inset 0 -1px 1px rgba(255,255,255,0.3);
+				}
+				.meter > span {
+					text-align:center;
+					vertical-align: middle;
+					font-size:12pt;
+					display: block;
+					height: 100%;
+					line-height: 100%;
+					-webkit-border-top-right-radius: 8px;
+					-webkit-border-bottom-right-radius: 8px;
+					-moz-border-radius-topright: 8px;
+					-moz-border-radius-bottomright: 8px;
+					border-top-right-radius: 8px;
+					border-bottom-right-radius: 8px;
+					-webkit-border-top-left-radius: 20px;
+					-webkit-border-bottom-left-radius: 20px;
+					-moz-border-radius-topleft: 20px;
+					-moz-border-radius-bottomleft: 20px;
+					border-top-left-radius: 20px;
+					border-bottom-left-radius: 20px;
+					background-color: rgb(43,194,83);
+					background-image: -webkit-gradient(
+						linear,
+						left bottom,
+						left top,
+						color-stop(0, rgb(43,194,83)),
+																						 color-stop(1, rgb(84,240,84))
+					);
+					background-image: -webkit-linear-gradient(
+						center bottom,
+						rgb(43,194,83) 37%,
+																										rgb(84,240,84) 69%
+					);
+					background-image: -moz-linear-gradient(
+						center bottom,
+						rgb(43,194,83) 37%,
+																								 rgb(84,240,84) 69%
+					);
+					background-image: -ms-linear-gradient(
+						center bottom,
+						rgb(43,194,83) 37%,
+																								rgb(84,240,84) 69%
+					);
+					background-image: -o-linear-gradient(
+						center bottom,
+						rgb(43,194,83) 37%,
+																							 rgb(84,240,84) 69%
+					);
+					-webkit-box-shadow: 
+					inset 0 2px 9px  rgba(255,255,255,0.3),
+					inset 0 -2px 6px rgba(0,0,0,0.4);
+					-moz-box-shadow: 
+					inset 0 2px 9px  rgba(255,255,255,0.3),
+					inset 0 -2px 6px rgba(0,0,0,0.4);
+					position: relative;
+					overflow: hidden;
+				}
+}
+
+@media print {
+        h1, h2, h3, h4, form, hr, br { display: none; }
+        .col1, .col4, .col5, .buttons, .rowhead, .meter { display: none; }
+        a:link    { color:black; text-decoration:none; }
+        a:visited { color:black; text-decoration:none; }
+        .base     { background-color:white; text-align:center; border-width:1px; margin:2px; border-style:none; border-width:1px; }
+        .title    { width:520pt; height:28pt; }
+        .box      { height:68pt; border-style:none; border-width:1px; float:left; font-size:16pt; line-height:30pt; border-style:none; border-width:1px; }
+        .lft      { width:158pt; }
+        .mid      { width:199pt; }
+        .rht      { width:151pt; }
+        #ui-datepicker-div, #cal { display:none; }
+}
