@@ -70,6 +70,19 @@ main() {
 	mv -f "$USAGE.$$" "$USAGE"
 }
 
+updateChanged() {
+	local user=$1
+	local ob=$2
+	local bytes=$3
+	if [ "$ob" != "$bytes" ]; then
+		echo "updateChanged: user=$user,ob=$ob,bytes=$bytes"
+		echo "$bytes" >"$SESSIONS/bytes-$user.txt";
+		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; | head -n 1 | cut -d ':' -f 1)
+		pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
+		[ "$pass" != "" ] && curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&bytes=$bytes" | grep -v OK
+	fi
+}
+
 main >/dev/null
 #name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}' | sed -e 's/:/-/g') # Unique name from MAC address of this firewall
 name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}') # Unique name from MAC address of this firewall
@@ -77,14 +90,20 @@ name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}') # Unique name from MAC ad
 # Upload information for each user that changed since last time
 cat "$USAGE" | while IFS=" ," read bytes user; do
 	[ "$user" = "" -o "$user" = "STARTDATE" ] && continue
-	#echo "bytes=$bytes,user=$user"
 	ob=$(cat "$SESSIONS/bytes-$user.txt" 2>/dev/null)
-	if [ "$ob" != "$bytes" ]; then
-		echo "$bytes" >"$SESSIONS/bytes-$user.txt";
-		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; | head -n 1 | cut -d ':' -f 1)
-		pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
-		[ "$pass" != "" ] && curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&bytes=$bytes" | grep -v OK
-	fi
+	ob=$(printf "%d" "$ob")
+	[ "$ob" = "" ] && ob=0
+	updateChanged "$user" "$ob" "$bytes"
+done
+# Two-way sync (also check for users that now have no bytes used)
+find "$SESSIONS/bytes-"* | while read file; do
+	user=$(basename "$file" .txt)
+	user=$(echo $user | cut -d '-' -f 2-)
+	ob=$(cat "$file")
+	bytes=$(grep ",$user," "$USAGE" | cut -d ',' -f 1)
+	bytes=$(printf "%d" "$bytes")
+	[ "$bytes" = "" ] && bytes=0
+	updateChanged "$user" "$ob" "$bytes"
 done
 
 #ssh www-data@$AUTHSRVR mkdir -p "/var/lib/innproxy/users/$name"
