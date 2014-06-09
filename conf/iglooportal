@@ -1,0 +1,6 @@
+# IglooPortal defaults
+
+source /etc/default/iglooportal
+
+AUTHSRVR=192.168.200.11
+CHECKOUT=11

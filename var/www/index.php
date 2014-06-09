@@ -11,10 +11,10 @@
 		header("Location: https://reserve.bristolinn.com?redirect={$redirect}");
 		exit;
 	}
-	if(isset($_GET['session'])) {
-		include("iglooportal/status.php");
-		exit;
-	}
+// 	if(isset($_GET['session'])) {
+// 		include("iglooportal/status.php");
+// 		exit;
+// 	}
 
   global $a,$b,$private_id,$site_name,$redirect,$usersjson,$AUTHURL;
 
@@ -73,8 +73,11 @@
 		if(substr($result, 0, 14) == "/sbin/iptables" || strpos($result, "already authorized") !== false) {
 			sleep(3);
 			//header("Location: {$redirect}");
-			header("Location: https://reserve.bristolinn.com/index.php?session=$private_id&count=0&redirect=$redirect");
+			header("Location: https://reserve.bristolinn.com/iglooportal/grantaccess.php?session=$private_id&count=0&redirect=$redirect");
 			return;
+		}
+		else {
+			echo "result($cmd)=$result";
 		}
   }
 
