@@ -108,8 +108,8 @@
 <html>
   <head><title>Session Status</title>
     <meta HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE" />
-		<meta http-equiv="refresh" content="30; url=/index.php?session=<?=$session?>&count=<?=$count?>&redirect=<?=$redirect?>">
-		<LINK rel="stylesheet" type="text/css" href="iglooportal/styles/style.css" />
+		<meta http-equiv="refresh" content="45; url=/iglooportal/status.php?session=<?=$session?>&count=<?=$count?>&redirect=<?=$redirect?>">
+		<LINK rel="stylesheet" type="text/css" href="styles/style.css" />
 		<script type="text/javascript">
 			var logout='<?=$logout?>';
 			var user='<?=$user?>';
