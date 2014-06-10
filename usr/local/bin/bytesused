@@ -78,11 +78,13 @@ updateChanged() {
 	if [ "$ob" != "$bytes" ]; then
 		echo "updateChanged: user=$user,ob=$ob,bytes=$bytes"
 		echo "$bytes" >"$SESSIONS/bytes-$user.txt";
-		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; | head -n 1 | cut -d ':' -f 1)
-		pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
-		if [ "$pass" != "" ]; then
-			result=$(curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=$bytes&fwpass=" | egrep -v "^NO$|^OK$")
-			[ "$result" != "" ] && echo "$result" >"$FWPASS"
+		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; 2>/dev/null | head -n 1 | cut -d ':' -f 1)
+		if [ "$session" != "" ]; then
+			pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
+			if [ "$pass" != "" ]; then
+				result=$(curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=$bytes&fwpass=" | egrep -v "^NO$|^OK$")
+				[ "$result" != "" ] && echo "$result" >"$FWPASS"
+			fi
 		fi
 	fi
 }
