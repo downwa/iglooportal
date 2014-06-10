@@ -53,7 +53,7 @@ grep -vi ",$mac," "$USERS" >"$USERS.$$"
 mv "$USERS.$$" "$USERS"
 
 #ssh www-data@$AUTHSRVR logoutwebuser "$user"
-session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; | head -n 1 | cut -d ':' -f 1)
+session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; 2>/dev/null | head -n 1 | cut -d ':' -f 1)
 pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
 echo curl --show-error --silent --insecure "$AUTHURL?user=$user&pass=$pass&ipaddr=&macaddr="
 curl --show-error --silent --insecure "$AUTHURL?user=$user&pass=$pass&ipaddr=&macaddr=" | grep -v OK
