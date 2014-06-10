@@ -7,13 +7,14 @@ STATUS="https://wifi.choggiung.com/status.php"
 SESSIONS=/var/lib/iglooportal/sessions/
 
 source /etc/iglooportal # AUTHSRVR,CHECKOUT
+[ "$SESSIONTIMEOUT" = "" ] && SESSIONTIMEOUT=60
 
 mac=$(ifconfig eth0 | grep "HWaddr" | awk '{print $5}')
 ip=$(ifconfig eth0 | grep "inet addr:" | awk '{print $2}' | cut -d ':' -f 2)
 host=$(host "$ip" | grep -v ".arpa.*not found" | awk '{print $5}')
 
-# Clean up old sessions first
-find /var/lib/iglooportal/sessions/session-* -cmin +60 -exec rm {} \;
+# Clean up day-old sessions first
+find /var/lib/iglooportal/sessions/session-* -cmin +1440 -exec rm {} \;
 
 #users=$(ssh www-data@$AUTHSRVR /usr/local/bin/activeusers $mac $ip $host)
 badusers=$(
@@ -31,7 +32,7 @@ badusers=$(
 		fi
 	done
 	# Find outdated sessions
-	find "$SESSIONS" -name 'session-*' -mmin +5 -exec grep "^user=" {} \; | cut -d '=' -f 2-
+	find "$SESSIONS" -name 'session-*' -mmin +$SESSIONTIMEOUT -exec grep "^user=" {} \; | cut -d '=' -f 2-
 	) | sort | uniq
 )
 iptables -t nat -L auth 2>&1 | grep -q "iptables: No chain/target/match by that name." && {
