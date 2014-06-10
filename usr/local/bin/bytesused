@@ -73,6 +73,8 @@ main() {
 main >/dev/null
 #name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}' | sed -e 's/:/-/g') # Unique name from MAC address of this firewall
 name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}') # Unique name from MAC address of this firewall
+fwip=$(ifconfig eth0 | grep "inet addr:" | awk '{print $2}' | sed -e 's/^addr://g')
+fwdns=$(host "$fwip" | grep -v "not found:" | sed -e 's/.*domain name pointer //g')
 
 # Upload information for each user that changed since last time
 cat "$USAGE" | while IFS=" ," read bytes user; do
@@ -83,7 +85,7 @@ cat "$USAGE" | while IFS=" ," read bytes user; do
 		echo "$bytes" >"$SESSIONS/bytes-$user.txt";
 		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; | head -n 1 | cut -d ':' -f 1)
 		pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
-		[ "$pass" != "" ] && curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&bytes=$bytes" | grep -v OK
+		[ "$pass" != "" ] && curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=$bytes" | grep -v OK
 	fi
 done
 
