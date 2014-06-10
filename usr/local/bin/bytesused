@@ -4,6 +4,7 @@
 # NOTE: Uploads results for each user to $UPDATE site
 
 USAGE=/var/lib/iglooportal/usage.csv
+FWPASS="/var/lib/iglooportal/fwpass.txt"
 SESSIONS=/var/lib/iglooportal/sessions
 USEHR=$(date +"/var/lib/iglooportal/usehr-%H.csv")
 UPDATE="https://wifi.choggiung.com/update.php"
@@ -79,8 +80,12 @@ updateChanged() {
 		echo "$bytes" >"$SESSIONS/bytes-$user.txt";
 		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; | head -n 1 | cut -d ':' -f 1)
 		pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
-		[ "$pass" != "" ] && curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=$bytes" | grep -v OK
+		if [ "$pass" != "" ]; then
+			result=$(curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=$bytes&fwpass=" | egrep -v "^NO$|^OK$")
+			[ "$result" != "" ] && echo "$result" >"$FWPASS"
+		fi
 	fi
+	touch "$FWPASS"
 }
 
 main >/dev/null
@@ -107,6 +112,11 @@ find "$SESSIONS/bytes-"* | while read file; do
 	[ "$bytes" = "" ] && bytes=0
 	updateChanged "$user" "$ob" "$bytes"
 done
+old=$(find "$FWPASS" -cmin +1 2>/dev/null) # IF outdated, we need to ping the server
+if [ "$old" != "" ]; then
+	fwpass=$(cat "$FWPASS")
+	curl --show-error --silent --insecure "$UPDATE?user=&pass=&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=&fwpass=$fwpass"
+fi
 
 #ssh www-data@$AUTHSRVR mkdir -p "/var/lib/innproxy/users/$name"
 #echo scp "$USEHR" "$USAGE" "www-data@$AUTHSRVR:/var/lib/innproxy/users/$name/"

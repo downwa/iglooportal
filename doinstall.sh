@@ -13,7 +13,7 @@ if [ "$1" = "--install" ]; then
 
 	# Install or update needed software
 	sudo apt-get update
-	sudo apt-get --assume-yes install arptables bridge-utils conntrack dnsutils ebtables git nmap realpath dnsmasq isc-dhcp-server lighttpd php5-cgi inotify-tools
+	sudo apt-get --assume-yes install arptables bridge-utils conntrack dnsutils ebtables git nmap realpath dnsmasq isc-dhcp-server lighttpd php5-cgi inotify-tools bc
 
 	# Fix permissions before copy
 	sudo chown root etc/sudoers.d/
