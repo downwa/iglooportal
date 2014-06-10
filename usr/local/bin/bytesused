@@ -85,7 +85,6 @@ updateChanged() {
 			[ "$result" != "" ] && echo "$result" >"$FWPASS"
 		fi
 	fi
-	touch "$FWPASS"
 }
 
 main >/dev/null
@@ -112,9 +111,8 @@ find "$SESSIONS/bytes-"* | while read file; do
 	[ "$bytes" = "" ] && bytes=0
 	updateChanged "$user" "$ob" "$bytes"
 done
-old=$(find "$FWPASS" -cmin +1 2>/dev/null) # IF outdated, we need to ping the server
-if [ "$old" != "" ]; then
-	fwpass=$(cat "$FWPASS")
+fwpass=$(cat "$FWPASS" 2>/dev/null)
+if [ "$fwpass" != "" ]; then # Ping the server to keep firewall alive
 	curl --show-error --silent --insecure "$UPDATE?user=&pass=&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=&fwpass=$fwpass"
 fi
 
