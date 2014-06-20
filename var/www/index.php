@@ -46,8 +46,8 @@
   if($submit != "") {
 		$macaddr=shell_exec("getmac ".$_SERVER['REMOTE_ADDR']);
     //$users = json_decode(file_get_contents("/var/lib/innproxy/users.json"));
-    $user = preg_replace('/[^\p{L}\p{N}\s]/u', '', $user); // Replace symbols to sanitize input
-    $pass = preg_replace('/[^\p{L}\p{N}\s]/u', '', $pass); // Replace symbols to sanitize input
+    $user = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $user)); // Replace symbols to sanitize input
+    $pass = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $pass)); // Replace symbols to sanitize input
 		$auth=file_get_contents("{$AUTHURL}?user={$user}&pass={$pass}&ipaddr=".$_SERVER['REMOTE_ADDR']."&macaddr={$macaddr}"); // NO,OK,DI(sabled),OV(eruse)
     if     ($auth == "OK") {
 			$authenticated=1;			
