@@ -4,13 +4,6 @@
 if [ "$1" = "--install" ]; then
 	# git clone https://github.com/downwa/iglooportal # NOTE: Presumably already done if you are here
 
-	# Install tcprelay from repository
-	cd ..
-	git clone https://github.com/downwa/tcprelay && cd tcprelay/ && ./configure && sudo make install && cd ..
-	cd iglooportal/
-
-	pwd
-
 	# Install or update needed software
 	sudo apt-get update
 	sudo apt-get --assume-yes install arptables bridge-utils conntrack dnsutils ebtables git nmap realpath dnsmasq isc-dhcp-server lighttpd php5-cgi inotify-tools bc

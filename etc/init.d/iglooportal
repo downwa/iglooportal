@@ -42,19 +42,20 @@ IPTABLES=/sbin/iptables
 # Function that starts the daemon/service
 #
 do_start() {
+	ifup -a
 	startfw # Apply firewall rules
 
  	# Start a daemon which times out users who are off the net, or whose time allotment or bandwidth has been exceeded.
 	/etc/init.d/timeoutd start
 
 	# Restart relays
-	/etc/init.d/relays start | egrep -v "Relay status|tcp.*LISTEN" # We'll see it all again below...
+#	/etc/init.d/relays start | egrep -v "Relay status|tcp.*LISTEN" # We'll see it all again below...
 
 	# Start authrelay
-	/etc/init.d/authrelay start
+#	/etc/init.d/authrelay start
 
 	# Display status of relays
-	stsrelay
+#	status
 
 	return 0
 }
@@ -135,11 +136,10 @@ accounting() {
 	#$IPTABLES -n -v -x -L -Z
 }
 
-stsrelay() {
+status() {
 	echo "Authorized users:"
 	$IPTABLES -t nat -L auth
-	echo "Relay status..."
-        /bin/netstat -nlp | grep tcprelay
+	ip addr
 }
 
 flushfw() {
@@ -160,7 +160,6 @@ flushfw() {
 
 stopfw() {
 	flushfw
-	killall tcprelay
 #	iptables-restore </etc/iptables.rules
 }
 
@@ -182,7 +181,7 @@ case "$1" in
 	esac
 	;;
   status)
-	stsrelay
+	status
 	;;
   restart|force-reload)
 	#

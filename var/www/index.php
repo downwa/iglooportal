@@ -29,6 +29,7 @@
 
   loadSession();
   setGlobalIni();
+  saveSession();
   header("Connection: close");
 
   // HANDLE INPUTS
@@ -81,7 +82,6 @@
 		}
   }
 
-  saveSession();
 //echo $private_id; 
 //	echo hash('sha256', 'g8xxlx');
 

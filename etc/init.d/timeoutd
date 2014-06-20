@@ -15,7 +15,7 @@ timeoutd() {
 		iptables -t nat -L auth | grep "MAC " | awk '{print $7" "$9}' | sed -e 's/USER://g' | while read mac user; do
 			ip=$(arp -na | grep -i " at $mac" | cut -d '(' -f 2 | cut -d ')' -f 1)
 			if [ "$ip" = "" -a "${user:0:6}" != "micros" ]; then
-				/usr/bin/logoutmac "$mac" "$user"
+				/usr/bin/logoutnet "$user"
 			fi
 		done
 		/usr/local/bin/bytesused >/var/log/bytesused.log 2>&1 </dev/null

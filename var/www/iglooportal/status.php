@@ -94,7 +94,7 @@
     //if ($auth == "OK") { }
 		unlink($SESSIONS."/session-".$session);
 		$redirect=$_GET['redirect'];
-		$cmd="sudo /usr/bin/logoutip '{$ipaddr}' '' '{$user}'";
+		$cmd="sudo /usr/bin/logoutnet '{$user}'";
 		$result=shell_exec($cmd);
 		//die("result=".$result);
 		//if(strpos($result, "not authorized") !== false) { } // Success

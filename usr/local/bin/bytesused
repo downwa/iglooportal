@@ -76,13 +76,14 @@ updateChanged() {
 	local ob=$2
 	local bytes=$3
 	if [ "$ob" != "$bytes" ]; then
+		userip=$(iptables -t nat -L auth | grep "/\* USER:$user \*/" | awk '{print $4}')
 		echo "updateChanged: user=$user,ob=$ob,bytes=$bytes"
 		echo "$bytes" >"$SESSIONS/bytes-$user.txt";
 		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; 2>/dev/null | head -n 1 | cut -d ':' -f 1)
 		if [ "$session" != "" ]; then
 			pass=$(grep "^pass=" "$session" | cut -d '=' -f 2)
 			if [ "$pass" != "" ]; then
-				result=$(curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=$bytes&fwpass=" | egrep -v "^NO$|^OK$")
+				result=$(curl --show-error --silent --insecure "$UPDATE?user=$user&pass=$pass&firewall=$name&fwip=$fwip&fwdns=$fwdns&bytes=$bytes&fwpass=&userip=$userip" | egrep -v "^NO$|^OK$")
 				[ "$result" != "" ] && echo "$result" >"$FWPASS"
 			fi
 		fi
