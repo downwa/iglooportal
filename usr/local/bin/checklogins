@@ -14,8 +14,8 @@ ip=$(ifconfig eth0 | grep "inet addr:" | awk '{print $2}' | cut -d ':' -f 2)
 host=$(host "$ip" | grep -v ".arpa.*not found" | awk '{print $5}')
 
 # Clean up timed-out sessions first
-find "$SESSIONS/session-"* -cmin +$SESSIONTIMEOUT -exec rm {} \;
-find "$SESSIONS/bytes-"* -cmin +$SESSIONTIMEOUT -exec rm {} \;
+find "$SESSIONS" -name 'session-*' -cmin +$SESSIONTIMEOUT -exec rm {} \;
+find "$SESSIONS" -name 'bytes-*'   -cmin +$SESSIONTIMEOUT -exec rm {} \;
 
 iptables -t nat -L auth 2>&1 | grep -q "iptables: No chain/target/match by that name." && {
 	date +"%D %T: Restarting firewall because it was down."
