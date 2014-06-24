@@ -87,7 +87,8 @@
 
 		// Check remote record of logged in users		
 		$loggedin=($loggedin == "Yes" && $userinfo['ipaddr'] != "")?"Yes":"No";
-		if($loggedin == "Yes") { touch($SESSIONS."/session-".$session); } // Keep this session alive, if it is logged in
+		// Keep this session alive, if it is logged in and not overuse
+		if($loggedin == "Yes" && $pct < 100) { touch($SESSIONS."/session-".$session); }
 	}
 	else { // logout is non-blank
 		$auth=file_get_contents("{$AUTHURL}?user={$user}&pass={$pass}&ipaddr=&macaddr="); // NO,OK,DI(sabled),OV(eruse)

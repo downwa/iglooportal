@@ -15,6 +15,7 @@ host=$(host "$ip" | grep -v ".arpa.*not found" | awk '{print $5}')
 
 # Clean up timed-out sessions first
 find "$SESSIONS" -name 'session-*' -cmin +$SESSIONTIMEOUT -exec rm {} \;
+# Remove the bytes used record as well (just to keep things tidy)
 find "$SESSIONS" -name 'bytes-*'   -cmin +$SESSIONTIMEOUT -exec rm {} \;
 
 iptables -t nat -L auth 2>&1 | grep -q "iptables: No chain/target/match by that name." && {

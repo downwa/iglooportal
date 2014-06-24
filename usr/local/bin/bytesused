@@ -77,7 +77,7 @@ updateChanged() {
 	local bytes=$3
 	if [ "$ob" != "$bytes" ]; then
 		userip=$(iptables -t nat -L auth | grep "/\* USER:$user \*/" | awk '{print $4}')
-		echo "updateChanged: user=$user,ob=$ob,bytes=$bytes"
+		echo "updateChanged: user=$user,ob=$ob,bytes=$bytes."
 		echo "$bytes" >"$SESSIONS/bytes-$user.txt";
 		session=$(find /var/lib/iglooportal/sessions/session-* -exec grep -H "^user=$user$" {} \; 2>/dev/null | head -n 1 | cut -d ':' -f 1)
 		if [ "$session" != "" ]; then
@@ -96,18 +96,20 @@ name=$(ifconfig eth0 | grep HWaddr | awk '{print $5}') # Unique name from MAC ad
 fwip=$(ifconfig eth0 | grep "inet addr:" | awk '{print $2}' | sed -e 's/^addr://g')
 fwdns=$(host "$fwip" | grep -v "not found:" | sed -e 's/.*domain name pointer //g')
 
+# Iterate through users recorded in $USAGE
 # Upload information for each user that changed since last time
 cat "$USAGE" | while IFS=" ," read bytes user; do
 	[ "$user" = "" -o "$user" = "STARTDATE" ] && continue
 	ob=$(cat "$SESSIONS/bytes-$user.txt" 2>/dev/null)
-	ob=$(printf "%d" "$ob")
 	[ "$ob" = "" ] && ob=0
+	ob=$(printf "%d" "$ob")
 	updateChanged "$user" "$ob" "$bytes"
 done
+# Iterate through record of bytes used
 # Two-way sync (also check for users that now have no bytes used)
 find "$SESSIONS/bytes-"* | while read file; do
 	user=$(basename "$file" .txt)
-	user=$(echo $user | cut -d '-' -f 2-)
+	user=$(echo "$user" | cut -d '-' -f 2-)
 	ob=$(cat "$file")
 	bytes=$(grep ",$user," "$USAGE" | cut -d ',' -f 1)
 	bytes=$(printf "%d" "$bytes")
