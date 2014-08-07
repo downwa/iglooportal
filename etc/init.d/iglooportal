@@ -104,8 +104,10 @@ startfw() {
 	$IPTABLES -t nat    -N serv 
 	$IPTABLES -t nat    -A serv -p udp --dport    53 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport    80 -j ACCEPT
+	$IPTABLES -t nat    -A serv -p tcp --dport   110 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport   443 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport   447 -j ACCEPT
+	$IPTABLES -t nat    -A serv -p tcp --dport   993 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport  9054 -j ACCEPT # Micros Terminal
 	$IPTABLES -t nat    -A serv -p tcp --dport 24800 -j ACCEPT # Synergy Mouse/Keyboard: FOR DEBUGGING ONLY
 	$IPTABLES -t nat    -A serv -p icmp -j ACCEPT
