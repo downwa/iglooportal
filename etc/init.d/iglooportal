@@ -102,8 +102,8 @@ startfw() {
 
 	#For even authorized clients, limit services that can be accessed
 	$IPTABLES -t nat    -N serv 
-	$IPTABLES -t nat    -A serv -p udp --dport    25 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p udp --dport    53 -j ACCEPT
+	$IPTABLES -t nat    -A serv -p tcp --dport    25 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport    80 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport   110 -j ACCEPT
 	$IPTABLES -t nat    -A serv -p tcp --dport   443 -j ACCEPT
