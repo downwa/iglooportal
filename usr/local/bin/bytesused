@@ -3,10 +3,11 @@
 # NOTE: Also records a detailed usage by MAC address for each hour in the last 24 hours, in USEHR files
 # NOTE: Uploads results for each user to $UPDATE site
 
-USAGE=/var/lib/iglooportal/usage.csv
-FWPASS="/var/lib/iglooportal/fwpass.txt"
-SESSIONS=/var/lib/iglooportal/sessions
-USEHR=$(date +"/var/lib/iglooportal/usehr-%H.csv")
+IG="/var/lib/iglooportal"
+USAGE="$IG/usage.csv"
+FWPASS="$IG/fwpass.txt"
+SESSIONS="$IG/sessions"
+USEHR=$(date +"$IG/usehr-%H.csv")
 UPDATE="https://wifi.choggiung.com/update.php"
 
 source /etc/iglooportal # AUTHSRVR,CHECKOUT

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+clientUsage() {
+        sudo iptables -nvx -L acctO | grep -v "^       0 " | tail -n +3 | awk '{print $7,$2}'
+        sudo iptables -nvx -L acctI | grep -v "^       0 " | tail -n +3 | awk '{print $8,$2}'
+}
+
+clientUsage
