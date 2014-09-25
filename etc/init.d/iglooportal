@@ -70,10 +70,10 @@ do_stop() {
 	/etc/init.d/timeoutd stop
 
 	# Stop relays
-	/etc/init.d/relays stop
+#	/etc/init.d/relays stop
 
 	# Stop authrelay
-        /etc/init.d/authrelay stop
+#        /etc/init.d/authrelay stop
 }
 
 startfw() {
